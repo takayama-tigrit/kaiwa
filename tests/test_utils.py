@@ -12,6 +12,7 @@ from kaiwa.utils import (
     _make_serializable,
     _save_intermediate,
     format_timestamp,
+    get_keychain_password,
     validate_audio,
 )
 
@@ -278,3 +279,114 @@ class TestSaveIntermediate:
         with open(path, "r", encoding="utf-8") as f:
             saved = json.load(f)
         assert saved["segments"][0]["words"][0]["score"] is None
+
+
+class TestGetKeychainPasswordSecurity:
+    """get_keychain_password() のセキュリティテスト"""
+
+    @mock.patch("subprocess.run")
+    def test_keychain_timeout(self, mock_run):
+        """Keychainアクセスのタイムアウト（10秒制限）"""
+        import subprocess
+        
+        # TimeoutExpiredを投げる
+        mock_run.side_effect = subprocess.TimeoutExpired("security", 10)
+        
+        result = get_keychain_password("kaiwa", "hf-token")
+        
+        # タイムアウト時はNoneを返すこと
+        assert result is None
+        
+        # subprocess.runがtimeout=10で呼ばれていること
+        assert mock_run.called
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs.get("timeout") == 10
+
+    @mock.patch("subprocess.run")
+    def test_keychain_command_failure(self, mock_run):
+        """Keychainコマンド実行失敗時のエラーハンドリング"""
+        import subprocess
+        
+        # CalledProcessErrorを投げる
+        mock_result = mock.MagicMock()
+        mock_result.stderr = "could not be found"
+        mock_run.side_effect = subprocess.CalledProcessError(1, "security")
+        mock_run.side_effect.stderr = "could not be found"
+        
+        result = get_keychain_password("kaiwa", "hf-token")
+        
+        # エラー時はNoneを返すこと
+        assert result is None
+
+    @mock.patch("subprocess.run")
+    def test_keychain_unexpected_error(self, mock_run):
+        """Keychainアクセス時の予期しないエラーのハンドリング"""
+        # 予期しない例外を投げる
+        mock_run.side_effect = OSError("予期しないエラー")
+        
+        result = get_keychain_password("kaiwa", "hf-token")
+        
+        # エラー時はNoneを返すこと
+        assert result is None
+
+
+class TestLogFileSecurity:
+    """ログファイルのセキュリティテスト"""
+
+    def test_log_directory_permissions(self, tmp_path, monkeypatch):
+        """ログディレクトリが0o700で作成されること"""
+        import kaiwa.utils
+        
+        # LOG_DIRをtmp_pathに変更
+        log_dir = tmp_path / "logs"
+        monkeypatch.setattr(kaiwa.utils, "LOG_DIR", log_dir)
+        
+        # setup_loggingを実行
+        kaiwa.utils.setup_logging()
+        
+        # ディレクトリが作成されていること
+        assert log_dir.exists()
+        
+        # パーミッションが0o700であること（所有者のみアクセス可）
+        import stat
+        mode = log_dir.stat().st_mode
+        # ディレクトリビットを除いた下位9ビットを取得
+        perms = stat.S_IMODE(mode)
+        assert perms == 0o700, f"Expected 0o700, got {oct(perms)}"
+
+    def test_log_file_permissions(self, tmp_path, monkeypatch):
+        """ログファイルが0o600で作成されること"""
+        import kaiwa.utils
+        from datetime import datetime
+        import logging
+        
+        # LOG_DIRをtmp_pathに変更
+        log_dir = tmp_path / "logs"
+        monkeypatch.setattr(kaiwa.utils, "LOG_DIR", log_dir)
+        
+        # 既存のloggerのハンドラーをクリア（他のテストの影響を排除）
+        logger = logging.getLogger("kaiwa")
+        logger.handlers.clear()
+        
+        # setup_loggingを実行
+        logger = kaiwa.utils.setup_logging()
+        
+        # ログファイルパスを取得
+        log_file = log_dir / f"{datetime.now().strftime('%Y-%m-%d')}.log"
+        
+        # ログファイルに何か書き込む
+        logger.info("Test log message")
+        
+        # ハンドラーをフラッシュしてファイルに書き込みを確実にする
+        for handler in logger.handlers:
+            if isinstance(handler, logging.FileHandler):
+                handler.flush()
+        
+        # ファイルが作成されていること
+        assert log_file.exists(), f"Log file {log_file} does not exist"
+        
+        # パーミッションが0o600であること（所有者のみ読み書き可）
+        import stat
+        mode = log_file.stat().st_mode
+        perms = stat.S_IMODE(mode)
+        assert perms == 0o600, f"Expected 0o600, got {oct(perms)}"

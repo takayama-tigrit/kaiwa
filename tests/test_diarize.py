@@ -346,3 +346,70 @@ class TestDiarize:
         call_kwargs = mock_pipeline.call_args[1]
         assert call_kwargs["min_speakers"] == 2
         assert call_kwargs["max_speakers"] == 5  # configの値
+
+
+class TestDiarizeErrorHandling:
+    """diarize() のエラーハンドリングテスト"""
+
+    @mock.patch("whisperx.diarize.DiarizationPipeline")
+    def test_diarize_pipeline_init_failure(self, mock_pipeline_class):
+        """DiarizationPipelineのインスタンス化失敗時のエラーハンドリング"""
+        # パイプラインのインスタンス化に失敗
+        mock_pipeline_class.side_effect = RuntimeError("HuggingFace tokenが無効です")
+        
+        audio = mock.MagicMock()
+        result = {"segments": []}
+        config = {"whisper": {"device": "cpu"}, "diarize": {}}
+        
+        # エラーが伝播すること
+        with pytest.raises(RuntimeError) as exc_info:
+            diarize(audio, result, "invalid-token", config)
+        
+        assert "HuggingFace tokenが無効です" in str(exc_info.value)
+
+    @mock.patch("whisperx.assign_word_speakers")
+    @mock.patch("whisperx.diarize.DiarizationPipeline")
+    def test_diarize_exception_during_processing(
+        self, mock_pipeline_class, mock_assign_speakers
+    ):
+        """話者分離処理中の例外がハンドリングされること"""
+        # モックの設定
+        mock_pipeline = mock.MagicMock()
+        mock_pipeline_class.return_value = mock_pipeline
+        
+        # diarize処理が例外を投げる
+        mock_pipeline.side_effect = RuntimeError("音声処理中にエラーが発生しました")
+        
+        audio = mock.MagicMock()
+        result = {"segments": []}
+        config = {"whisper": {"device": "cpu"}, "diarize": {}}
+        
+        # エラーが伝播すること
+        with pytest.raises(RuntimeError) as exc_info:
+            diarize(audio, result, "hf-token", config)
+        
+        assert "音声処理中にエラーが発生しました" in str(exc_info.value)
+
+    @mock.patch("whisperx.assign_word_speakers")
+    @mock.patch("whisperx.diarize.DiarizationPipeline")
+    def test_diarize_assign_speakers_failure(
+        self, mock_pipeline_class, mock_assign_speakers
+    ):
+        """assign_word_speakers失敗時のエラーハンドリング"""
+        # モックの設定
+        mock_pipeline = mock.MagicMock()
+        mock_pipeline_class.return_value = mock_pipeline
+        mock_pipeline.return_value = mock.MagicMock()
+        
+        # assign_word_speakersが例外を投げる
+        mock_assign_speakers.side_effect = RuntimeError("話者割り当てに失敗しました")
+        
+        audio = mock.MagicMock()
+        result = {"segments": []}
+        config = {"whisper": {"device": "cpu"}, "diarize": {}}
+        
+        # エラーが伝播すること
+        with pytest.raises(RuntimeError) as exc_info:
+            diarize(audio, result, "hf-token", config)
+        
+        assert "話者割り当てに失敗しました" in str(exc_info.value)

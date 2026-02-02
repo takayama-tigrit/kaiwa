@@ -165,6 +165,9 @@ def get_keychain_password(account: str, service: str) -> str | None:
         else:
             logger.error("❌ Keychainアクセスエラー: %s", e.stderr)
         return None
+    except Exception as e:
+        logger.error("❌ 予期しないKeychainエラー: %s", e)
+        return None
 
 
 # ---------------------------------------------------------------------------

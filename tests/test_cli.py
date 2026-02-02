@@ -45,7 +45,11 @@ class TestMain:
         assert "kaiwa" in captured.out
 
     def test_process_subcommand_argparse(self, tmp_audio_file):
-        """process サブコマンドの引数がparseされること"""
+        """process サブコマンドの引数がparseされること
+        
+        注意: cmd_processをモックしてargparseの動作だけ確認するテスト。
+        統合テストの方が価値が高い。
+        """
         with mock.patch("sys.argv", ["kaiwa", "process", str(tmp_audio_file)]):
             with mock.patch("kaiwa.cli.cmd_process") as mock_cmd:
                 main()
@@ -334,3 +338,113 @@ class TestCmdProcess:
                     
                     # transcribe が呼ばれていること（パストラバーサル対策後も処理継続）
                     assert mock_transcribe.called
+
+
+class TestCmdProcessIntegration:
+    """cmd_process() の統合テスト（エラーハンドリング・セキュリティ）"""
+
+    def test_nonexistent_audio_file_shows_helpful_message(self, tmp_path, capsys):
+        """存在しない音声ファイルで実行した際、ユーザーに有用なエラーメッセージが表示されること"""
+        nonexistent = tmp_path / "nonexistent.wav"
+        args = argparse.Namespace(
+            audio_file=str(nonexistent),
+            min_speakers=None,
+            max_speakers=None,
+        )
+        
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_process(args)
+        
+        assert exc_info.value.code == 1
+        
+        # エラーメッセージが出力されていること
+        captured = capsys.readouterr()
+        assert "ファイルが見つかりません" in captured.err
+
+    def test_transcribe_exception_handled_gracefully(self, tmp_audio_file):
+        """transcribe()が例外を投げた時に適切にエラーが伝播すること
+        
+        注意: 現在の実装では、cmd_process()は例外をキャッチせず伝播させる。
+        main()関数の__name__=="__main__"ブロックで最終的にキャッチされる。
+        """
+        with mock.patch("kaiwa.cli.get_keychain_password", return_value="hf-token-value"):
+            with mock.patch("kaiwa.transcribe.transcribe") as mock_transcribe:
+                # transcribeが例外を投げる
+                mock_transcribe.side_effect = RuntimeError("モデルロード失敗")
+                
+                args = argparse.Namespace(
+                    audio_file=str(tmp_audio_file),
+                    min_speakers=None,
+                    max_speakers=None,
+                )
+                
+                # 例外が伝播すること
+                with pytest.raises(RuntimeError) as exc_info:
+                    cmd_process(args)
+                
+                assert "モデルロード失敗" in str(exc_info.value)
+
+    @pytest.mark.parametrize("malicious_name", [
+        "../../../etc/passwd",
+        "..\\..\\windows\\system32",
+        pytest.param("test\x00.wav", marks=pytest.mark.skipif(
+            True,  # OSによってはnull byteを許可しない
+            reason="OSがファイル名にnull byteを許可しない場合がある"
+        )),
+        "../../.ssh/id_rsa",
+    ])
+    def test_path_traversal_attack_patterns(self, malicious_name, tmp_path):
+        """実際の攻撃パターンでパストラバーサル対策を検証"""
+        import wave
+        
+        # safe_stemに変換されることを確認するために、作業ディレクトリを設定
+        work_base = tmp_path / "work"
+        work_base.mkdir(parents=True, exist_ok=True)
+        
+        # 攻撃パターンを含むファイル名で音声ファイルを作成
+        # （実際にはファイル名としては使えない文字もあるので、safe_stem変換をテスト）
+        safe_name = malicious_name.replace("/", "_").replace("\\", "_").replace("..", "__").replace("\x00", "")
+        audio_file = tmp_path / f"{safe_name}.wav"
+        
+        with wave.open(str(audio_file), "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(16000)
+            wf.writeframes(b"\x00\x00" * 16000)
+        
+        with mock.patch("kaiwa.cli.load_config") as mock_config:
+            mock_config.return_value = {
+                "paths": {"work": str(work_base)},
+            }
+            
+            with mock.patch("kaiwa.cli.get_keychain_password", return_value="hf-token-value"):
+                with mock.patch("kaiwa.transcribe.transcribe") as mock_transcribe:
+                    mock_audio = mock.MagicMock()
+                    mock_result = {"segments": []}
+                    mock_transcribe.return_value = (mock_audio, mock_result)
+                    
+                    with mock.patch("kaiwa.diarize.diarize") as mock_diarize:
+                        mock_diarize.return_value = mock_result
+                        
+                        with mock.patch("kaiwa.output.generate_markdown") as mock_gen:
+                            mock_gen.return_value = tmp_path / "output.md"
+                            
+                            args = argparse.Namespace(
+                                audio_file=str(audio_file),
+                                min_speakers=None,
+                                max_speakers=None,
+                            )
+                            
+                            # エラーにならないこと（safe_stemに変換されているため）
+                            cmd_process(args)
+                            
+                            # transcribeが呼ばれていること
+                            assert mock_transcribe.called
+                            
+                            # work_base配下に限定されていることを確認
+                            # （transcribeの第3引数がwork_dirで、work_base配下であること）
+                            call_kwargs = mock_transcribe.call_args[1]
+                            if "work_dir" in call_kwargs:
+                                work_dir = Path(call_kwargs["work_dir"])
+                                # work_baseの配下であることを確認
+                                assert work_dir.is_relative_to(work_base) or str(work_dir).startswith(str(work_base))

@@ -244,3 +244,88 @@ class TestTranscribe:
         
         call_kwargs = mock_model.transcribe.call_args[1]
         assert call_kwargs["language"] == "ja"  # デフォルト
+
+
+class TestTranscribeErrorHandling:
+    """transcribe() のエラーハンドリングテスト"""
+
+    @mock.patch("faster_whisper.WhisperModel")
+    def test_transcribe_model_load_failure(self, mock_whisper_model, tmp_audio_file):
+        """モデルロード失敗時のエラーハンドリング"""
+        # モデルのインスタンス化に失敗
+        mock_whisper_model.side_effect = RuntimeError("モデルのロードに失敗しました")
+        
+        config = {
+            "whisper": {
+                "device": "cpu",
+                "compute_type": "float32",
+                "model": "large-v3-turbo",
+                "language": "ja",
+                "use_native_word_timestamps": True,
+            }
+        }
+        
+        # エラーが伝播すること
+        with pytest.raises(RuntimeError) as exc_info:
+            transcribe(tmp_audio_file, config)
+        
+        assert "モデルのロードに失敗しました" in str(exc_info.value)
+
+    @mock.patch("kaiwa.transcribe.whisperx")
+    @mock.patch("faster_whisper.WhisperModel")
+    def test_transcribe_corrupted_audio(self, mock_whisper_model, mock_whisperx, tmp_path):
+        """不正な音声データでのエラーハンドリング"""
+        # 不正な音声ファイル
+        corrupted = tmp_path / "corrupted.wav"
+        corrupted.write_bytes(b"RIFF" + b"\x00" * 100)
+        
+        # whisperx.load_audio が例外を投げる
+        mock_whisperx.load_audio.side_effect = RuntimeError("音声ファイルの読み込みに失敗しました")
+        
+        config = {
+            "whisper": {
+                "device": "cpu",
+                "compute_type": "float32",
+                "model": "large-v3-turbo",
+                "language": "ja",
+                "use_native_word_timestamps": True,
+            }
+        }
+        
+        # エラーが伝播すること
+        with pytest.raises(RuntimeError) as exc_info:
+            transcribe(corrupted, config)
+        
+        assert "音声ファイルの読み込みに失敗しました" in str(exc_info.value)
+
+    @mock.patch("kaiwa.transcribe.whisperx")
+    @mock.patch("faster_whisper.WhisperModel")
+    def test_transcribe_exception_during_transcription(
+        self, mock_whisper_model, mock_whisperx, tmp_audio_file
+    ):
+        """文字起こし中の例外がハンドリングされること"""
+        # モックの設定
+        mock_audio = mock.MagicMock()
+        mock_whisperx.load_audio.return_value = mock_audio
+        
+        mock_model = mock.MagicMock()
+        mock_whisper_model.return_value = mock_model
+        
+        # transcribeが例外を投げる
+        mock_model.transcribe.side_effect = RuntimeError("GPU メモリ不足")
+        
+        config = {
+            "whisper": {
+                "device": "cpu",
+                "compute_type": "float32",
+                "model": "large-v3-turbo",
+                "language": "ja",
+                "use_native_word_timestamps": True,
+            }
+        }
+        
+        # エラーが伝播すること
+        with pytest.raises(RuntimeError) as exc_info:
+            transcribe(tmp_audio_file, config)
+        
+        assert "GPU メモリ不足" in str(exc_info.value)
