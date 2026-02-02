@@ -119,9 +119,15 @@ iPhoneで録音 → クラウドストレージ経由で Mac に自動同期 →
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | システム設計・データフロー |
 | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | よくある問題と解決策 |
 
+## 🤝 コントリビュート
+
+PRやIssueを歓迎しています！詳細は [CONTRIBUTING.md](CONTRIBUTING.md) をご覧ください。
+
 ## 📄 ライセンス
 
 [MIT License](LICENSE) — Copyright (c) 2026 takayama-tigrit
+
+サードパーティライセンスの詳細: [NOTICE.md](NOTICE.md)
 
 ## 🙏 謝辞
 
