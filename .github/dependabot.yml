@@ -1,0 +1,22 @@
+# Dependabot 設定 - セキュリティアップデートとバージョン管理
+# https://docs.github.com/ja/code-security/dependabot
+
+version: 2
+updates:
+  # Python 依存パッケージ
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+    # バージョニング戦略
+    versioning-strategy: increase
+    # セキュリティアップデートを優先
+    allow:
+      - dependency-type: "all"
