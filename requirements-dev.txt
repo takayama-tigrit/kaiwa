@@ -2,7 +2,7 @@
 # テスト、リント、型チェック、セキュリティ監査ツール
 
 # Testing
-pytest==7.4.3
+pytest==9.0.2
 pytest-cov==7.0.0
 
 # Type checking
