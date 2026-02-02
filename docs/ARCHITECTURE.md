@@ -28,10 +28,10 @@
 │         ┌────────────────────┼────────────────────┐            │
 │         ▼                    ▼                    ▼            │
 │  ┌─────────────┐   ┌──────────────┐   ┌──────────────────┐   │
-│  │  Step 1-2    │   │  Step 3       │   │  Step 4           │   │
-│  │  WhisperX    │   │  pyannote     │   │  Claude API       │   │
-│  │  文字起こし   │   │  話者分離      │   │  要約生成          │   │
-│  │  + align     │   │  + assign     │   │  (リトライ付き)    │   │
+│  │  Step 1       │   │  Step 2-3     │   │  Step 4           │   │
+│  │  faster-      │   │  pyannote     │   │  Claude API       │   │
+│  │  whisper      │   │  話者分離      │   │  要約生成          │   │
+│  │  + word_ts    │   │  + 再分割     │   │  (リトライ付き)    │   │
 │  └──────┬──────┘   └──────┬───────┘   └────────┬─────────┘   │
 │         │                  │                     │             │
 │         ▼                  ▼                     ▼             │
@@ -42,7 +42,8 @@
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │  中間成果物: ~/Transcripts/work/<recording_stem>/         │  │
-│  │    01_transcribe.json → 02_align.json → 03_diarize.json  │  │
+│  │    01_transcribe.json → 03_diarize_raw.json              │  │
+│  │                       → 03_diarize.json (再分割後)        │  │
 │  └──────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -53,8 +54,8 @@
 |---------------|---------|------|
 | CLI | `src/kaiwa/cli.py` | エントリポイント。argparse でサブコマンドを管理 |
 | 設定 | `src/kaiwa/config.py` | `~/.kaiwa/config.yaml` の読み込み + デフォルト値マージ |
-| 文字起こし | `src/kaiwa/transcribe.py` | WhisperX による音声→テキスト変換 + アラインメント |
-| 話者分離 | `src/kaiwa/diarize.py` | pyannote.audio による話者識別 |
+| 文字起こし | `src/kaiwa/transcribe.py` | faster-whisper による音声→テキスト変換（native word_timestamps） |
+| 話者分離 | `src/kaiwa/diarize.py` | pyannote.audio による話者識別 + セグメント再分割 |
 | 要約 | `src/kaiwa/summarize.py` | Anthropic SDK を使った Claude 要約（リトライ付き） |
 | 出力 | `src/kaiwa/output.py` | Markdown ファイル生成 |
 | ユーティリティ | `src/kaiwa/utils.py` | ログ、通知、Keychain、音声検証 |
@@ -70,23 +71,35 @@
     ↓
 [検証] サイズ ≥ 1KB, 長さ ≥ 1秒
     ↓
-[WhisperX] 文字起こし → 01_transcribe.json
+[faster-whisper] 文字起こし + word_timestamps → 01_transcribe.json
     ↓
-[WhisperX] アラインメント → 02_align.json
+[pyannote] 話者分離 → 03_diarize_raw.json
     ↓
-[pyannote] 話者分離 → 03_diarize.json
+[セグメント再分割] 話者交代ポイントで分割 → 03_diarize.json
     ↓
 [Claude] 要約生成（オプション）
     ↓
-[出力] Markdown ファイル → ~/Transcripts/YYYY-MM-DD_HHMMSS.md
+[出力] Markdown ファイル → ~/Transcripts/YYYYMMDD_タイトル.md
 ```
+
+### 2つの文字起こしモード
+
+| | native mode（デフォルト） | whisperx mode |
+|---|---|---|
+| **エンジン** | faster-whisper 直接 | WhisperX バッチパイプライン |
+| **word timestamps** | ✅ cross-attention ベース | wav2vec2 アラインメント |
+| **日本語精度** | ◎ トークン単位で安定 | △ 文字レベルで不正確 |
+| **処理方式** | シーケンシャル | バッチ（並列処理） |
+| **設定** | `use_native_word_timestamps: true` | `use_native_word_timestamps: false` |
 
 ## 設計判断
 
-### なぜ WhisperX？
+### なぜ faster-whisper 直接モード？（v0.1.0〜）
 
-- **whisper** 単体ではタイムスタンプが不正確
-- WhisperX は **forced alignment** + **話者分離統合** を提供
+- WhisperX のバッチパイプラインは `word_timestamps` に非対応（テキストのみ返却）
+- WhisperX の wav2vec2 アラインメントは日本語の文字レベルで精度が壊滅的
+  - 例: 1文字「今」に26秒分のタイムスタンプが割り当てられ、残り全文字が0.5秒に圧縮される
+- faster-whisper の cross-attention ベース word_timestamps はトークン単位で動作し、日本語でも安定
 - `large-v3-turbo` モデルは精度とパフォーマンスのバランスが良い
 
 ### なぜ CPU？
