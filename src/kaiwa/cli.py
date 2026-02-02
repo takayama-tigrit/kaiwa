@@ -89,7 +89,15 @@ def cmd_process(args: argparse.Namespace) -> None:
 
     from kaiwa.diarize import diarize
 
-    result = diarize(audio, result, hf_token, config, work_dir=work_dir)
+    result = diarize(
+        audio,
+        result,
+        hf_token,
+        config,
+        work_dir=work_dir,
+        min_speakers=args.min_speakers,
+        max_speakers=args.max_speakers,
+    )
 
     notify("kaiwa", "✅ 話者分離完了")
 
@@ -165,6 +173,18 @@ def main() -> None:
     # process サブコマンド
     process_parser = subparsers.add_parser("process", help="音声ファイルを処理する")
     process_parser.add_argument("audio_file", help="処理する音声ファイルのパス")
+    process_parser.add_argument(
+        "--min-speakers",
+        type=int,
+        default=None,
+        help="最小話者数のヒント（未指定で自動推定）",
+    )
+    process_parser.add_argument(
+        "--max-speakers",
+        type=int,
+        default=None,
+        help="最大話者数のヒント（未指定で自動推定）",
+    )
     process_parser.set_defaults(func=cmd_process)
 
     # version サブコマンド

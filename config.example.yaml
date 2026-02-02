@@ -8,6 +8,10 @@ whisper:
   language: ja
   batch_size: 8
 
+diarize:
+  # min_speakers: 2    # 最小話者数（未指定で自動推定）
+  # max_speakers: null  # 最大話者数（未指定で自動推定）
+
 claude:
   model: claude-3-5-haiku-latest  # モデル名は将来変更の可能性あり
   max_tokens: 2048
