@@ -13,12 +13,25 @@ from typing import Any
 logger = logging.getLogger("kaiwa")
 
 
+def _sanitize_filename(title: str) -> str:
+    """タイトルをファイル名に安全な文字列に変換する。"""
+    import re
+    # ファイル名に使えない文字を除去/置換
+    sanitized = re.sub(r'[\\/:*?"<>|]', '', title)
+    sanitized = sanitized.replace(" ", "_").replace("　", "_")
+    # 長すぎる場合は切り詰め
+    if len(sanitized) > 50:
+        sanitized = sanitized[:50]
+    return sanitized.strip("_")
+
+
 def generate_markdown(
     transcript_lines: list[str],
     summary: str | None,
     audio_path: Path,
     elapsed: float,
     config: dict[str, Any],
+    title: str | None = None,
 ) -> Path:
     """処理結果を Markdown ファイルとして保存する。
 
@@ -34,6 +47,8 @@ def generate_markdown(
         処理にかかった秒数。
     config : dict
         設定辞書。
+    title : str | None
+        会話のタイトル。ファイル名に使用。None なら日時のみ。
 
     Returns
     -------
@@ -44,7 +59,13 @@ def generate_markdown(
     output_dir = Path(config.get("paths", {}).get("output", "~/Transcripts")).expanduser()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    output_file = output_dir / f"{now.strftime('%Y-%m-%d_%H%M%S')}.md"
+    # ファイル名: YYYYMMDD_タイトル.md（タイトルなしなら YYYYMMDD_HHMMSS.md）
+    date_prefix = now.strftime('%Y%m%d')
+    if title:
+        safe_title = _sanitize_filename(title)
+        output_file = output_dir / f"{date_prefix}_{safe_title}.md"
+    else:
+        output_file = output_dir / f"{date_prefix}_{now.strftime('%H%M%S')}.md"
 
     elapsed_min = int(elapsed) // 60
     elapsed_sec = int(elapsed) % 60
@@ -55,7 +76,8 @@ def generate_markdown(
     whisper_model = config.get("whisper", {}).get("model", "large-v3-turbo")
     claude_model = config.get("claude", {}).get("model", "claude-3-5-haiku-latest")
 
-    md_content = f"""# 会話メモ — {now.strftime('%Y-%m-%d %H:%M')}
+    heading_title = title if title else now.strftime('%Y-%m-%d %H:%M')
+    md_content = f"""# {heading_title}
 
 ## 📋 要約
 

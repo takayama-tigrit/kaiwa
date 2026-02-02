@@ -92,15 +92,16 @@ def cmd_process(args: argparse.Namespace) -> None:
 
     # ----- Step 4: 要約生成 -----
     summary = None
+    title = None
     if anthropic_key:
         notify("kaiwa", "🤖 Step 4: Claude で要約生成中...")
 
         from kaiwa.summarize import summarize
 
-        summary = summarize(transcript_text, anthropic_key, config)
+        title, summary = summarize(transcript_text, anthropic_key, config)
 
         if summary:
-            notify("kaiwa", "✅ 要約生成完了")
+            notify("kaiwa", f"✅ 要約生成完了: {title or '(タイトルなし)'}")
         else:
             logger.warning("⚠️ 要約生成に失敗しました")
             notify("kaiwa ⚠️", "要約生成失敗")
@@ -113,7 +114,9 @@ def cmd_process(args: argparse.Namespace) -> None:
     from kaiwa.output import generate_markdown
 
     elapsed = time.time() - start_time
-    output_file = generate_markdown(transcript_lines, summary, audio_path, elapsed, config)
+    output_file = generate_markdown(
+        transcript_lines, summary, audio_path, elapsed, config, title=title
+    )
 
     # ----- 完了 -----
     elapsed_min = int(elapsed) // 60
