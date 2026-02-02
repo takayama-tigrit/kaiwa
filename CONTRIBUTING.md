@@ -59,9 +59,9 @@ ruff format src/
 
 ### Reporting Security Vulnerabilities
 
-**DO NOT** open a public issue for security vulnerabilities. Instead, please send an email to:
+**DO NOT** open a public issue for security vulnerabilities. Instead, please use **GitHub Security Advisories** for private reporting:
 
-📧 **security@example.com** (replace with actual email)
+🔒 [**Report a vulnerability**](https://github.com/takayama-tigrit/kaiwa/security/advisories/new)
 
 Include:
 - Description of the vulnerability
@@ -128,9 +128,9 @@ ruff format src/
 
 ### セキュリティ脆弱性の報告
 
-セキュリティ上の問題を発見した場合は、**公開 Issue を作成しないでください**。代わりに以下のメールアドレスに連絡してください：
+セキュリティ上の問題を発見した場合は、**公開 Issue を作成しないでください**。代わりに **GitHub Security Advisories** からプライベート報告してください：
 
-📧 **security@example.com**（実際のメールアドレスに置き換えてください）
+🔒 [**脆弱性を報告する**](https://github.com/takayama-tigrit/kaiwa/security/advisories/new)
 
 以下の情報を含めてください：
 - 脆弱性の説明
@@ -162,6 +162,14 @@ ruff format src/
 - Update docstrings for public functions
 - Add examples where helpful
 - Keep README.md and docs/ up to date
+
+---
+
+## Contact Policy / 連絡方針
+
+Please use [GitHub Issues](https://github.com/takayama-tigrit/kaiwa/issues) or [Discussions](https://github.com/takayama-tigrit/kaiwa/discussions) for all project-related communication. **Please do not contact contributors directly via email.**
+
+プロジェクトに関する連絡は [GitHub Issues](https://github.com/takayama-tigrit/kaiwa/issues) または [Discussions](https://github.com/takayama-tigrit/kaiwa/discussions) をご利用ください。**コントリビューターへの直接のメール連絡はご遠慮ください。**
 
 ---
 

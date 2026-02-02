@@ -42,4 +42,4 @@ assignees: ''
 ## ✅ Checklist / チェックリスト
 - [ ] I have checked the [Troubleshooting guide](../docs/TROUBLESHOOTING.md) / トラブルシューティングガイドを確認しました
 - [ ] I have searched existing issues / 既存の Issue を検索しました
-- [ ] This is not a security vulnerability (if it is, email security@example.com) / セキュリティ脆弱性ではありません（脆弱性の場合は security@example.com にメール）
+- [ ] This is not a security vulnerability (if it is, use [GitHub Security Advisories](https://github.com/takayama-tigrit/kaiwa/security/advisories/new)) / セキュリティ脆弱性ではありません（脆弱性の場合は [Security Advisories](https://github.com/takayama-tigrit/kaiwa/security/advisories/new) から報告）

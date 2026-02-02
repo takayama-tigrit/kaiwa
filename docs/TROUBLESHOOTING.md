@@ -465,4 +465,4 @@ cd /path/to/kaiwa
 
 Issue テンプレート: [Bug Report](../.github/ISSUE_TEMPLATE/bug_report.md)
 
-**セキュリティ上の問題の場合は、Issue ではなく security@example.com にメールしてください。**
+**セキュリティ上の問題の場合は、公開 Issue ではなく [GitHub Security Advisories](https://github.com/takayama-tigrit/kaiwa/security/advisories/new) からプライベート報告してください。**

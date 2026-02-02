@@ -1,5 +1,9 @@
 # 🎙️ kaiwa（会話）
 
+[![Test](https://github.com/takayama-tigrit/kaiwa/actions/workflows/test.yml/badge.svg)](https://github.com/takayama-tigrit/kaiwa/actions/workflows/test.yml)
+[![Security Scan](https://github.com/takayama-tigrit/kaiwa/actions/workflows/security.yml/badge.svg)](https://github.com/takayama-tigrit/kaiwa/actions/workflows/security.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **対面会話をAIで自動文字起こし・話者分離・要約するOSSツール**
 
 Macの録音 or iPhoneのボイスメモから、話者分離付き文字起こし＋AI要約をMarkdownで自動生成します。
