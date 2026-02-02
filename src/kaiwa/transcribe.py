@@ -30,14 +30,14 @@ def _patched_torch_load(*args, **kwargs):
 torch.load = _patched_torch_load
 
 # ============================================================
-# 通常の import
+# 通常の import（torch.load パッチの後に配置する必要がある）
 # ============================================================
-import json
-import logging
-from pathlib import Path
-from typing import Any
+import json  # noqa: E402
+import logging  # noqa: E402
+from pathlib import Path  # noqa: E402
+from typing import Any  # noqa: E402
 
-import whisperx
+import whisperx  # noqa: E402
 
 logger = logging.getLogger("kaiwa")
 
