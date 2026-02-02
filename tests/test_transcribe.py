@@ -249,9 +249,12 @@ class TestTranscribe:
 class TestTranscribeErrorHandling:
     """transcribe() のエラーハンドリングテスト"""
 
+    @mock.patch("kaiwa.transcribe.whisperx")
     @mock.patch("faster_whisper.WhisperModel")
-    def test_transcribe_model_load_failure(self, mock_whisper_model, tmp_audio_file):
+    def test_transcribe_model_load_failure(self, mock_whisper_model, mock_whisperx, tmp_audio_file):
         """モデルロード失敗時のエラーハンドリング"""
+        # whisperx.load_audioはモック
+        mock_whisperx.load_audio.return_value = mock.MagicMock()
         # モデルのインスタンス化に失敗
         mock_whisper_model.side_effect = RuntimeError("モデルのロードに失敗しました")
         
