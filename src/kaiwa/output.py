@@ -13,6 +13,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from kaiwa import __version__
+
 logger = logging.getLogger("kaiwa")
 
 
@@ -103,7 +105,7 @@ def generate_markdown(
 *処理: WhisperX {whisper_model} + Claude {claude_model}*
 *元ファイル: {audio_path.name}*
 *処理時間: {elapsed_min}分{elapsed_sec}秒*
-*生成: kaiwa v0.1.0*
+*生成: kaiwa v{__version__}*
 """
 
     try:

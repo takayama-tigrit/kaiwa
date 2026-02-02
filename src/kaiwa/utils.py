@@ -5,12 +5,14 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import subprocess
 import wave
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 
 # ---------------------------------------------------------------------------
@@ -231,3 +233,40 @@ def validate_audio(path: Path) -> tuple[bool, str]:
         pass
 
     return True, "OK"
+
+
+# ---------------------------------------------------------------------------
+# 中間成果物の保存
+# ---------------------------------------------------------------------------
+
+
+def _save_intermediate(path: Path, data: dict) -> None:
+    """中間成果物を JSON ファイルとして保存する。"""
+    logger = logging.getLogger("kaiwa")
+    try:
+        # ディレクトリが存在しない場合は作成
+        path.parent.mkdir(parents=True, exist_ok=True)
+        # segments 内の非シリアライズ可能なオブジェクトを除外
+        serializable = _make_serializable(data)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(serializable, f, ensure_ascii=False, indent=2)
+        logger.debug("  中間成果物を保存: %s", path)
+    except (TypeError, OSError) as e:
+        logger.warning("  中間成果物の保存に失敗: %s — %s", path, e)
+        # 重要: メイン処理は続行する（中間ファイル保存は非必須）
+
+
+def _make_serializable(obj: Any) -> Any:
+    """JSON シリアライズ不可能なオブジェクトを変換する。"""
+    if isinstance(obj, dict):
+        return {k: _make_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [_make_serializable(item) for item in obj]
+    elif isinstance(obj, float):
+        if obj != obj:  # NaN check
+            return None
+        return obj
+    elif isinstance(obj, (int, str, bool, type(None))):
+        return obj
+    else:
+        return str(obj)

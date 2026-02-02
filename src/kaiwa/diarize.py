@@ -6,10 +6,11 @@ pyannote.audio を使用した話者分離（ダイアライゼーション）�
 
 from __future__ import annotations
 
-import json
 import logging
 from pathlib import Path
 from typing import Any
+
+from kaiwa.utils import _save_intermediate
 
 logger = logging.getLogger("kaiwa")
 
@@ -191,30 +192,3 @@ def _split_segments_by_speaker(segments: list[dict]) -> list[dict]:
             new_segments.append(new_seg)
 
     return new_segments
-
-
-def _save_intermediate(path: Path, data: dict) -> None:
-    """中間成果物を JSON ファイルとして保存する。"""
-    try:
-        serializable = _make_serializable(data)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(serializable, f, ensure_ascii=False, indent=2)
-        logger.debug("  中間成果物を保存: %s", path)
-    except (TypeError, OSError) as e:
-        logger.warning("  中間成果物の保存に失敗: %s — %s", path, e)
-
-
-def _make_serializable(obj: Any) -> Any:
-    """JSON シリアライズ不可能なオブジェクトを変換する。"""
-    if isinstance(obj, dict):
-        return {k: _make_serializable(v) for k, v in obj.items()}
-    elif isinstance(obj, (list, tuple)):
-        return [_make_serializable(item) for item in obj]
-    elif isinstance(obj, float):
-        if obj != obj:  # NaN check
-            return None
-        return obj
-    elif isinstance(obj, (int, str, bool, type(None))):
-        return obj
-    else:
-        return str(obj)
