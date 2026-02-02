@@ -1,0 +1,48 @@
+name: Security Scan
+
+on:
+  schedule:
+    # Run every Sunday at 00:00 UTC (週次スキャン)
+    - cron: '0 0 * * 0'
+  workflow_dispatch:  # 手動実行も可能
+
+jobs:
+  security:
+    runs-on: macos-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit bandit
+      
+      - name: Run pip-audit (dependency vulnerability scan)
+        run: |
+          pip-audit --requirement requirements.txt --format json --output pip-audit-report.json || true
+          pip-audit --requirement requirements.txt
+      
+      - name: Run Bandit (static security analysis)
+        run: |
+          bandit -r src/ -f json -o bandit-report.json || true
+          bandit -r src/ -ll  # Only show medium/high severity
+      
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            pip-audit-report.json
+            bandit-report.json
+      
+      - name: Check for vulnerabilities
+        run: |
+          echo "📊 セキュリティスキャン完了"
+          echo "詳細はアーティファクトをダウンロードして確認してください"
