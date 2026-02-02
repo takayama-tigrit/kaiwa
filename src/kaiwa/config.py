@@ -18,6 +18,7 @@ DEFAULTS: dict[str, Any] = {
         "compute_type": "float32",
         "language": "ja",
         "batch_size": 8,
+        "use_native_word_timestamps": True,  # True=Whisper本体, False=wav2vec2
     },
     "claude": {
         "model": "claude-3-5-haiku-latest",

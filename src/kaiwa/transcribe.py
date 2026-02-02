@@ -73,8 +73,100 @@ def transcribe(
     if work_dir:
         work_dir.mkdir(parents=True, exist_ok=True)
 
-    # ----- Step 1: 文字起こし -----
-    logger.info("📝 文字起こし開始 (model=%s, device=%s)", model_name, device)
+    use_native_timestamps = whisper_cfg.get("use_native_word_timestamps", True)
+
+    # whisperx.load_audio は diarize.py でも使うので常に実行
+    audio = whisperx.load_audio(str(audio_path))
+
+    if use_native_timestamps:
+        # ----- faster-whisper 直接モード（word_timestamps 対応） -----
+        result = _transcribe_with_native_timestamps(
+            audio_path, audio, model_name, device, compute_type, language,
+        )
+    else:
+        # ----- WhisperX バッチモード + wav2vec2 アラインメント -----
+        result = _transcribe_with_whisperx(
+            audio, audio_path, model_name, device, compute_type, language, batch_size,
+        )
+
+    logger.info("  ✅ 文字起こし完了: %d セグメント", len(result["segments"]))
+
+    # 中間成果物を保存
+    if work_dir:
+        _save_intermediate(work_dir / "01_transcribe.json", result)
+
+    return audio, result
+
+
+def _transcribe_with_native_timestamps(
+    audio_path: Path,
+    audio: Any,
+    model_name: str,
+    device: str,
+    compute_type: str,
+    language: str,
+) -> dict[str, Any]:
+    """faster-whisper を直接使い、cross-attention ベースの word_timestamps を取得する。
+
+    WhisperX のバッチパイプラインは word_timestamps に対応していないため、
+    faster-whisper の transcribe() を直接呼び出す。
+    """
+    import faster_whisper
+
+    logger.info(
+        "📝 文字起こし開始 — native word_timestamps (model=%s, device=%s)",
+        model_name, device,
+    )
+
+    model = faster_whisper.WhisperModel(
+        model_name, device=device, compute_type=compute_type,
+    )
+
+    segments_gen, info = model.transcribe(
+        str(audio_path),
+        language=language,
+        word_timestamps=True,
+        vad_filter=True,  # VAD でノイズ区間をスキップ
+    )
+
+    segments: list[dict[str, Any]] = []
+    for seg in segments_gen:
+        words = []
+        if seg.words:
+            for w in seg.words:
+                words.append({
+                    "word": w.word,
+                    "start": w.start,
+                    "end": w.end,
+                    "score": w.probability,
+                })
+
+        segments.append({
+            "start": seg.start,
+            "end": seg.end,
+            "text": seg.text.strip(),
+            "words": words,
+        })
+
+    logger.info("  ⏱️  アラインメント不要（native word_timestamps 使用）")
+
+    return {"segments": segments, "language": info.language}
+
+
+def _transcribe_with_whisperx(
+    audio: Any,
+    audio_path: Path,
+    model_name: str,
+    device: str,
+    compute_type: str,
+    language: str,
+    batch_size: int,
+) -> dict[str, Any]:
+    """WhisperX バッチパイプライン + wav2vec2 アラインメント（従来方式）。"""
+    logger.info(
+        "📝 文字起こし開始 — WhisperX batch + wav2vec2 align (model=%s, device=%s)",
+        model_name, device,
+    )
 
     model = whisperx.load_model(
         model_name,
@@ -83,20 +175,12 @@ def transcribe(
         language=language,
     )
 
-    audio = whisperx.load_audio(str(audio_path))
     result = model.transcribe(audio, batch_size=batch_size, language=language)
 
-    logger.info("  ✅ 文字起こし完了: %d セグメント", len(result["segments"]))
-
-    # 中間成果物を保存
-    if work_dir:
-        _save_intermediate(work_dir / "01_transcribe.json", result)
-
-    # ----- Step 2: アラインメント -----
-    logger.info("⏱️  アラインメント開始...")
+    logger.info("⏱️  アラインメント開始（wav2vec2）...")
 
     align_model, align_metadata = whisperx.load_align_model(
-        language_code=language, device=device
+        language_code=language, device=device,
     )
     result = whisperx.align(
         result["segments"],
@@ -109,11 +193,7 @@ def transcribe(
 
     logger.info("  ✅ アラインメント完了")
 
-    # 中間成果物を保存
-    if work_dir:
-        _save_intermediate(work_dir / "02_align.json", result)
-
-    return audio, result
+    return result
 
 
 def _save_intermediate(path: Path, data: dict) -> None:
