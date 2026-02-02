@@ -1,22 +1,16 @@
-# kaiwa — 開発用依存パッケージ
-# 更新: 2026-02-02
-# インストール: pip install -r requirements.txt -r requirements-dev.txt
+# Development dependencies
+# テスト、リント、型チェック、セキュリティ監査ツール
 
-# 本番依存を含む
--r requirements.txt
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0
 
-# テストフレームワーク
-pytest==8.3.4
-pytest-cov==6.0.0
+# Type checking
+mypy==1.7.1
 
-# 型チェック
-mypy==1.14.1
+# Linting & formatting
+ruff==0.1.8
 
-# Linter / Formatter
-ruff==0.9.1
-
-# セキュリティ監査
-pip-audit==2.7.3
-
-# シェルスクリプト検証
-shellcheck-py==0.10.0.1
+# Security audit
+pip-audit==2.7.0
+bandit==1.7.5
