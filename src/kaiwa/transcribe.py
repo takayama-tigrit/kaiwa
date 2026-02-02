@@ -16,11 +16,11 @@ _original_torch_load = torch.load
 
 
 def _patched_torch_load(*args, **kwargs):
-    # セキュリティ警告
+    # セキュリティ警告（初回のみ）
     warnings.warn(
         "torch.load で weights_only=False を使用しています。"
         "信頼できるモデルソース（HuggingFace公式）のみを使用してください。",
-        category=SecurityWarning,
+        category=RuntimeWarning,
         stacklevel=2
     )
     kwargs["weights_only"] = False
