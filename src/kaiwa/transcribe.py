@@ -194,4 +194,4 @@ def _transcribe_with_whisperx(
 
     logger.info("  ✅ アラインメント完了")
 
-    return result
+    return dict(result)
