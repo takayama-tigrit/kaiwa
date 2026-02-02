@@ -1,0 +1,193 @@
+"""kaiwa — ユーティリティモジュール
+
+ログ設定、macOS 通知、Keychain アクセス、音声検証など共通機能を提供する。
+"""
+
+from __future__ import annotations
+
+import logging
+import subprocess
+import wave
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+# ---------------------------------------------------------------------------
+# ログ設定
+# ---------------------------------------------------------------------------
+
+LOG_DIR = Path.home() / ".kaiwa" / "logs"
+
+
+def setup_logging(level: int = logging.INFO) -> logging.Logger:
+    """ファイル + stdout の二系統ロガーを設定する。
+
+    ログファイルは ~/.kaiwa/logs/YYYY-MM-DD.log に出力される。
+
+    Returns
+    -------
+    logging.Logger
+        設定済みの 'kaiwa' ロガー。
+    """
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+    logger = logging.getLogger("kaiwa")
+    logger.setLevel(level)
+
+    # 既にハンドラーがあれば追加しない
+    if logger.handlers:
+        return logger
+
+    formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    # stdout ハンドラー
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+
+    # ファイルハンドラー（日次ローテーション）
+    log_file = LOG_DIR / f"{datetime.now().strftime('%Y-%m-%d')}.log"
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    return logger
+
+
+# ---------------------------------------------------------------------------
+# macOS 通知
+# ---------------------------------------------------------------------------
+
+
+def notify(title: str, message: str) -> None:
+    """macOS 通知を表示する。heredoc でエスケープ安全に処理する。"""
+    try:
+        # heredoc を使い、タイトルとメッセージの特殊文字をエスケープ不要にする
+        script = f"""osascript <<'KAIWA_NOTIFY_EOF'
+display notification "{_escape_applescript(message)}" with title "{_escape_applescript(title)}"
+KAIWA_NOTIFY_EOF"""
+        subprocess.run(
+            ["bash", "-c", script],
+            check=False,
+            capture_output=True,
+            timeout=5,
+        )
+    except Exception:
+        pass
+
+
+def _escape_applescript(text: str) -> str:
+    """AppleScript 文字列内の特殊文字をエスケープする。"""
+    return text.replace("\\", "\\\\").replace('"', '\\"')
+
+
+# ---------------------------------------------------------------------------
+# Keychain アクセス
+# ---------------------------------------------------------------------------
+
+
+def get_keychain_password(account: str, service: str) -> str | None:
+    """macOS Keychain からパスワードを取得する。
+
+    Parameters
+    ----------
+    account : str
+        Keychain のアカウント名（例: "kaiwa"）。
+    service : str
+        Keychain のサービス名（例: "hf-token"）。
+
+    Returns
+    -------
+    str | None
+        パスワード文字列。見つからなければ None。
+    """
+    try:
+        result = subprocess.run(
+            [
+                "security",
+                "find-generic-password",
+                "-a",
+                account,
+                "-s",
+                service,
+                "-w",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
+        )
+        return result.stdout.strip()
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        return None
+
+
+# ---------------------------------------------------------------------------
+# タイムスタンプ
+# ---------------------------------------------------------------------------
+
+
+def format_timestamp(seconds: float) -> str:
+    """秒数を MM:SS または H:MM:SS 形式にフォーマットする。
+
+    1 時間を超える場合は H:MM:SS 形式になる。
+    """
+    total = int(seconds)
+    h, remainder = divmod(total, 3600)
+    m, s = divmod(remainder, 60)
+    if h > 0:
+        return f"{h}:{m:02d}:{s:02d}"
+    return f"{m:02d}:{s:02d}"
+
+
+# ---------------------------------------------------------------------------
+# 音声ファイル検証
+# ---------------------------------------------------------------------------
+
+MIN_FILE_SIZE = 1024  # 1KB
+MIN_DURATION_SECONDS = 1.0
+
+
+def validate_audio(path: Path) -> tuple[bool, str]:
+    """音声ファイルの基本的な妥当性を検証する。
+
+    Parameters
+    ----------
+    path : Path
+        音声ファイルのパス。
+
+    Returns
+    -------
+    tuple[bool, str]
+        (検証結果, メッセージ)。
+    """
+    if not path.exists():
+        return False, f"ファイルが見つかりません: {path}"
+
+    # サイズチェック（1KB 未満は拒否）
+    file_size = path.stat().st_size
+    if file_size < MIN_FILE_SIZE:
+        return False, f"ファイルサイズが小さすぎます: {file_size} bytes（最小 {MIN_FILE_SIZE} bytes）"
+
+    # WAV ファイルの読み込みテスト + 長さチェック
+    if path.suffix.lower() == ".wav":
+        try:
+            with wave.open(str(path), "rb") as wf:
+                frames = wf.getnframes()
+                rate = wf.getframerate()
+                if rate <= 0:
+                    return False, "無効なサンプルレートです"
+                duration = frames / rate
+                if duration < MIN_DURATION_SECONDS:
+                    return False, f"音声が短すぎます: {duration:.1f}秒（最小 {MIN_DURATION_SECONDS}秒）"
+        except wave.Error as e:
+            return False, f"WAV ファイルの読み込みに失敗しました: {e}"
+    else:
+        # WAV 以外のフォーマットは基本的なサイズチェックのみ
+        # WhisperX の load_audio が対応しているかは実行時に判明する
+        pass
+
+    return True, "OK"

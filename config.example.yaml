@@ -1,0 +1,21 @@
+# kaiwa — 設定ファイル
+# ~/.kaiwa/config.yaml にコピーして使用
+
+whisper:
+  model: large-v3-turbo
+  device: cpu          # cpu のみ対応（CTranslate2がMPS非対応）
+  compute_type: float32
+  language: ja
+  batch_size: 8
+
+claude:
+  model: claude-3-5-haiku-latest  # モデル名は将来変更の可能性あり
+  max_tokens: 2048
+  timeout: 120
+  max_retries: 3
+
+paths:
+  output: ~/Transcripts
+  raw: ~/Transcripts/raw
+  work: ~/Transcripts/work
+  icloud_watch: ~/Library/Mobile Documents/com~apple~CloudDocs/Transcripts/raw
