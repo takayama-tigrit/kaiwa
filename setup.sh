@@ -22,23 +22,23 @@ echo "✅ Homebrew: $(brew --version | head -1)"
 # Python 3.10+（Homebrew版を優先）
 PYTHON_CMD=""
 for candidate in python3.13 python3.12 python3.11 python3.10 python3; do
-    if command -v "$candidate" &>/dev/null; then
-        _minor=$("$candidate" -c "import sys; print(sys.version_info.minor)" 2>/dev/null || echo "0")
-        if [ "$_minor" -ge 10 ]; then
-            PYTHON_CMD="$candidate"
+    if command -v "${candidate}" &>/dev/null; then
+        _minor=$("${candidate}" -c "import sys; print(sys.version_info.minor)" 2>/dev/null || echo "0")
+        if [ "${_minor}" -ge 10 ]; then
+            PYTHON_CMD="${candidate}"
             break
         fi
     fi
 done
 
-if [ -z "$PYTHON_CMD" ]; then
+if [ -z "${PYTHON_CMD}" ]; then
     echo "❌ Python 3.10 以上が必要です"
     echo "   インストール: brew install python@3.13"
     exit 1
 fi
 
-PYTHON_VERSION=$("$PYTHON_CMD" --version 2>&1)
-echo "✅ Python: $PYTHON_VERSION ($PYTHON_CMD)"
+PYTHON_VERSION=$("${PYTHON_CMD}" --version 2>&1)
+echo "✅ Python: ${PYTHON_VERSION} (${PYTHON_CMD})"
 
 # ── Homebrew パッケージ ──
 
@@ -46,11 +46,11 @@ echo ""
 echo "📦 Homebrew パッケージをインストール..."
 
 for pkg in sox fswatch; do
-    if brew list "$pkg" &>/dev/null; then
-        echo "  ✅ $pkg: インストール済み"
+    if brew list "${pkg}" &>/dev/null; then
+        echo "  ✅ ${pkg}: インストール済み"
     else
-        echo "  📥 $pkg をインストール中..."
-        brew install "$pkg"
+        echo "  📥 ${pkg} をインストール中..."
+        brew install "${pkg}"
     fi
 done
 
@@ -62,53 +62,53 @@ echo "📁 ディレクトリを作成..."
 KAIWA_DIR="$HOME/.kaiwa"
 TRANSCRIPT_DIR="$HOME/Transcripts"
 
-mkdir -p "$KAIWA_DIR/logs"
-mkdir -p "$TRANSCRIPT_DIR/raw"
-mkdir -p "$TRANSCRIPT_DIR/work"
+mkdir -p "${KAIWA_DIR}/logs"
+mkdir -p "${TRANSCRIPT_DIR}/raw"
+mkdir -p "${TRANSCRIPT_DIR}/work"
 
-echo "  ✅ $KAIWA_DIR"
-echo "  ✅ $KAIWA_DIR/logs"
-echo "  ✅ $TRANSCRIPT_DIR/raw"
-echo "  ✅ $TRANSCRIPT_DIR/work"
+echo "  ✅ ${KAIWA_DIR}"
+echo "  ✅ ${KAIWA_DIR}/logs"
+echo "  ✅ ${TRANSCRIPT_DIR}/raw"
+echo "  ✅ ${TRANSCRIPT_DIR}/work"
 
 # ── Python venv ──
 
 echo ""
-VENV_DIR="$KAIWA_DIR/venv"
+VENV_DIR="${KAIWA_DIR}/venv"
 
-if [ -d "$VENV_DIR" ]; then
-    echo "✅ venv: 既に存在 ($VENV_DIR)"
+if [ -d "${VENV_DIR}" ]; then
+    echo "✅ venv: 既に存在 (${VENV_DIR})"
 else
     echo "🐍 Python venv を作成中..."
-    "$PYTHON_CMD" -m venv "$VENV_DIR"
-    echo "  ✅ venv 作成完了: $VENV_DIR"
+    "${PYTHON_CMD}" -m venv "${VENV_DIR}"
+    echo "  ✅ venv 作成完了: ${VENV_DIR}"
 fi
 
 # pip で依存関係インストール
 echo ""
 echo "📦 Python パッケージをインストール..."
-"$VENV_DIR/bin/pip" install --upgrade pip -q
-"$VENV_DIR/bin/pip" install whisperx anthropic pyyaml -q
+"${VENV_DIR}/bin/pip" install --upgrade pip -q
+"${VENV_DIR}/bin/pip" install -r "${SCRIPT_DIR}/requirements.txt" -q
 echo "  ✅ パッケージインストール完了"
 
 # ── 設定ファイル ──
 
 echo ""
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CONFIG_FILE="$KAIWA_DIR/config.yaml"
+CONFIG_FILE="${KAIWA_DIR}/config.yaml"
 
-if [ -f "$CONFIG_FILE" ]; then
-    echo "✅ 設定ファイル: 既に存在 ($CONFIG_FILE)"
+if [ -f "${CONFIG_FILE}" ]; then
+    echo "✅ 設定ファイル: 既に存在 (${CONFIG_FILE})"
 else
-    cp "$SCRIPT_DIR/config.example.yaml" "$CONFIG_FILE"
-    echo "✅ 設定ファイルをコピー: $CONFIG_FILE"
+    cp "${SCRIPT_DIR}/config.example.yaml" "${CONFIG_FILE}"
+    echo "✅ 設定ファイルをコピー: ${CONFIG_FILE}"
 fi
 
 # ── スクリプト実行権限 ──
 
 echo ""
 echo "🔧 スクリプトに実行権限を付与..."
-chmod +x "$SCRIPT_DIR/scripts/"*.sh 2>/dev/null || true
+chmod +x "${SCRIPT_DIR}/scripts/"*.sh 2>/dev/null || true
 echo "  ✅ 完了"
 
 # ── 完了メッセージ ──
@@ -131,11 +131,11 @@ echo "2. Anthropic API キーを Keychain に保存（要約機能を使う場�
 echo "   security add-generic-password -a kaiwa -s anthropic-api-key -w 'YOUR_API_KEY'"
 echo ""
 echo "3. テスト実行:"
-echo "   PYTHONPATH=$SCRIPT_DIR/src $VENV_DIR/bin/python -m kaiwa.cli process <WAVファイル>"
+echo "   PYTHONPATH=${SCRIPT_DIR}/src ${VENV_DIR}/bin/python -m kaiwa.cli process <WAVファイル>"
 echo ""
 echo "4. Raycast Script Command に登録（オプション）:"
-echo "   Raycast → Script Commands → Add Script Directory → $SCRIPT_DIR/scripts/"
+echo "   Raycast → Script Commands → Add Script Directory → ${SCRIPT_DIR}/scripts/"
 echo ""
 echo "5. iCloud 監視デーモンを有効化（オプション）:"
-echo "   $SCRIPT_DIR/scripts/install-daemon.sh"
+echo "   ${SCRIPT_DIR}/scripts/install-daemon.sh"
 echo ""

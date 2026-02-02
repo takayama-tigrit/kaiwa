@@ -1,3 +1,7 @@
-whisperx>=3.7.0
-anthropic>=0.70.0
-pyyaml>=6.0
+# kaiwa — 本番用依存パッケージ（バージョン固定）
+# 更新: 2026-02-02
+# インストール: pip install -r requirements.txt
+
+whisperx==3.7.6
+anthropic==0.77.0
+PyYAML==6.0.3

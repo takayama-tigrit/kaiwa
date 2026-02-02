@@ -24,7 +24,7 @@ if [ -f "$KAIWA_DIR/config.yaml" ]; then
         RAW_PATH="${_raw/#\~/$HOME}"
     fi
 fi
-OUTPUT_DIR="$RAW_PATH"
+OUTPUT_DIR="${RAW_PATH}"
 
 mkdir -p "$KAIWA_DIR" "$OUTPUT_DIR"
 
@@ -42,20 +42,20 @@ stop_recording() {
     local max_wait=10
 
     # kill -0 でプロセス存在確認
-    if ! kill -0 "$pid" 2>/dev/null; then
-        echo "⚠️  PID $pid はすでに終了しています"
-        rm -f "$PID_FILE"
+    if ! kill -0 "${pid}" 2>/dev/null; then
+        echo "⚠️  PID ${pid} はすでに終了しています"
+        rm -f "${PID_FILE}"
         return 0
     fi
 
     # INT シグナルで停止要求
-    kill -INT "$pid" 2>/dev/null
+    kill -INT "${pid}" 2>/dev/null
 
     # 最大10秒待機
-    while [ $waited -lt $max_wait ]; do
-        if ! kill -0 "$pid" 2>/dev/null; then
-            echo "✅ 録音プロセス (PID $pid) が正常終了しました"
-            rm -f "$PID_FILE"
+    while [ ${waited} -lt ${max_wait} ]; do
+        if ! kill -0 "${pid}" 2>/dev/null; then
+            echo "✅ 録音プロセス (PID ${pid}) が正常終了しました"
+            rm -f "${PID_FILE}"
             return 0
         fi
         sleep 1
@@ -64,38 +64,38 @@ stop_recording() {
 
     # タイムアウト → 強制終了
     echo "⚠️  タイムアウト — SIGKILL で強制終了"
-    kill -KILL "$pid" 2>/dev/null || true
-    rm -f "$PID_FILE"
+    kill -KILL "${pid}" 2>/dev/null || true
+    rm -f "${PID_FILE}"
     return 0
 }
 
 # ── メイン処理 ──
 
-if [ -f "$PID_FILE" ]; then
-    PID=$(cat "$PID_FILE")
+if [ -f "${PID_FILE}" ]; then
+    PID=$(cat "${PID_FILE}")
 
     # 録音中 → 停止
-    stop_recording "$PID"
+    stop_recording "${PID}"
 
     notify "⏹ kaiwa" "録音を停止しました。処理を開始します..."
     afplay /System/Library/Sounds/Pop.aiff &
 
     # 処理パイプライン起動
-    if [ -f "$CURRENT_FILE" ]; then
-        RECORDING_FILE=$(cat "$CURRENT_FILE")
-        if [ -f "$RECORDING_FILE" ]; then
-            PYTHONPATH="$KAIWA_SRC" nohup "$VENV_PYTHON" -m kaiwa.cli process "$RECORDING_FILE" > /dev/null 2>&1 &
+    if [ -f "${CURRENT_FILE}" ]; then
+        RECORDING_FILE=$(cat "${CURRENT_FILE}")
+        if [ -f "${RECORDING_FILE}" ]; then
+            PYTHONPATH="${KAIWA_SRC}" nohup "${VENV_PYTHON}" -m kaiwa.cli process "${RECORDING_FILE}" > /dev/null 2>&1 &
         else
-            notify "kaiwa ⚠️" "録音ファイルが見つかりません: $RECORDING_FILE"
+            notify "kaiwa ⚠️" "録音ファイルが見つかりません: ${RECORDING_FILE}"
         fi
     fi
 else
     # 停止中 → 録音開始
-    FILENAME="$OUTPUT_DIR/recording_$(date +%Y%m%d_%H%M%S).wav"
-    echo "$FILENAME" > "$CURRENT_FILE"
+    FILENAME="${OUTPUT_DIR}/recording_$(date +%Y%m%d_%H%M%S).wav"
+    echo "${FILENAME}" > "${CURRENT_FILE}"
 
-    nohup sox -d -r 16000 -c 1 -b 16 "$FILENAME" > /dev/null 2>&1 &
-    echo $! > "$PID_FILE"
+    nohup sox -d -r 16000 -c 1 -b 16 "${FILENAME}" > /dev/null 2>&1 &
+    echo $! > "${PID_FILE}"
 
     notify "🔴 kaiwa" "録音を開始しました"
     afplay /System/Library/Sounds/Tink.aiff &

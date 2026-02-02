@@ -14,4 +14,4 @@
 
 # 本体スクリプトを呼び出す
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec "$SCRIPT_DIR/toggle-record.sh"
+exec "${SCRIPT_DIR}/toggle-record.sh"

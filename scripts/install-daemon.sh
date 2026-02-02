@@ -21,13 +21,13 @@ mkdir -p "$LOG_DIR"
 if [[ "${1:-}" == "--uninstall" ]]; then
     echo "🗑️  LaunchAgent をアンインストールします..."
 
-    if launchctl list | grep -q "$PLIST_NAME"; then
-        launchctl unload "$PLIST_FILE" 2>/dev/null || true
+    if launchctl list | grep -q "${PLIST_NAME}"; then
+        launchctl unload "${PLIST_FILE}" 2>/dev/null || true
         echo "  ✅ アンロード完了"
     fi
 
-    if [ -f "$PLIST_FILE" ]; then
-        rm "$PLIST_FILE"
+    if [ -f "${PLIST_FILE}" ]; then
+        rm "${PLIST_FILE}"
         echo "  ✅ plist 削除完了"
     fi
 
@@ -40,38 +40,45 @@ fi
 echo "📦 LaunchAgent をインストールします..."
 
 # watch-recordings.sh が存在するか確認
-if [ ! -f "$WATCH_SCRIPT" ]; then
-    echo "❌ watch-recordings.sh が見つかりません: $WATCH_SCRIPT"
+if [ ! -f "${WATCH_SCRIPT}" ]; then
+    echo "❌ watch-recordings.sh が見つかりません: ${WATCH_SCRIPT}"
     exit 1
 fi
 
 # 既存の plist をアンロード
-if launchctl list | grep -q "$PLIST_NAME"; then
-    launchctl unload "$PLIST_FILE" 2>/dev/null || true
+if launchctl list | grep -q "${PLIST_NAME}"; then
+    launchctl unload "${PLIST_FILE}" 2>/dev/null || true
 fi
 
 # plist 生成
-mkdir -p "$PLIST_DIR"
-cat > "$PLIST_FILE" <<PLIST_EOF
+mkdir -p "${PLIST_DIR}"
+cat > "${PLIST_FILE}" <<PLIST_EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>$PLIST_NAME</string>
+    <string>${PLIST_NAME}</string>
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>$WATCH_SCRIPT</string>
+        <string>${WATCH_SCRIPT}</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
-    <true/>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
     <key>StandardOutPath</key>
-    <string>$LOG_DIR/watch-stdout.log</string>
+    <string>${LOG_DIR}/watch-stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>$LOG_DIR/watch-stderr.log</string>
+    <string>${LOG_DIR}/watch-stderr.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
@@ -81,10 +88,10 @@ cat > "$PLIST_FILE" <<PLIST_EOF
 </plist>
 PLIST_EOF
 
-echo "  ✅ plist 生成完了: $PLIST_FILE"
+echo "  ✅ plist 生成完了: ${PLIST_FILE}"
 
 # ロード
-launchctl load "$PLIST_FILE"
+launchctl load "${PLIST_FILE}"
 echo "  ✅ LaunchAgent ロード完了"
 
 echo ""
