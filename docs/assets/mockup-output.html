@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d1117;
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    width: 780px;
+  }
+
+  .editor {
+    width: 680px;
+    background: #161b22;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06);
+  }
+
+  .titlebar {
+    background: #1c2129;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .dot-red { background: #ff5f57; }
+  .dot-yellow { background: #febc2e; }
+  .dot-green { background: #28c840; }
+
+  .filename {
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+    margin-left: 8px;
+    flex: 1;
+    text-align: center;
+  }
+
+  .file-icon {
+    font-size: 14px;
+  }
+
+  .content {
+    padding: 28px 32px;
+    color: #e6edf3;
+  }
+
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 24px 0;
+    color: #f0f6fc;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 12px;
+  }
+
+  h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 24px 0 12px 0;
+    color: #f0f6fc;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .meta {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    background: rgba(255,255,255,0.06);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+  }
+
+  .summary-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 8px 0;
+  }
+
+  .summary-list li {
+    padding: 6px 0;
+    font-size: 14px;
+    color: #c9d1d9;
+    line-height: 1.5;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .summary-list li::before {
+    content: "•";
+    color: #58a6ff;
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+
+  .todo {
+    background: rgba(46, 160, 67, 0.1);
+    border-left: 3px solid #2ea043;
+    padding: 8px 12px;
+    border-radius: 0 6px 6px 0;
+    margin: 8px 0 0 0;
+    font-size: 14px;
+    color: #7ee787;
+  }
+
+  .transcript {
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    padding: 16px 18px;
+    font-family: "SF Mono", "Menlo", monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    color: #c9d1d9;
+  }
+
+  .ts {
+    color: rgba(255,255,255,0.3);
+    font-size: 12px;
+  }
+
+  .speaker-a {
+    color: #79c0ff;
+    font-weight: 600;
+  }
+
+  .speaker-b {
+    color: #d2a8ff;
+    font-weight: 600;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .badge-auto {
+    background: rgba(56, 139, 253, 0.15);
+    color: #58a6ff;
+  }
+
+  .fade {
+    color: rgba(255,255,255,0.2);
+    font-size: 13px;
+    text-align: center;
+    padding: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="editor">
+  <div class="titlebar">
+    <div class="dots">
+      <div class="dot dot-red"></div>
+      <div class="dot dot-yellow"></div>
+      <div class="dot dot-green"></div>
+    </div>
+    <div class="filename">
+      <span class="file-icon">📄</span>
+      来期ロードマップ打ち合わせ_20260202_1430.md
+    </div>
+  </div>
+
+  <div class="content">
+    <h1>🎙️ 来期ロードマップ打ち合わせ</h1>
+
+    <div class="meta">
+      <span class="meta-item">📅 2026-02-02 14:30</span>
+      <span class="meta-item">⏱ 5分12秒</span>
+      <span class="meta-item">👥 2名</span>
+      <span class="meta-item badge badge-auto">🤖 AI要約</span>
+    </div>
+
+    <h2>📋 要約</h2>
+    <ul class="summary-list">
+      <li>来期は認証基盤の刷新を最優先で進めることで合意</li>
+      <li>QAリソースが不足しているため、外部委託を検討する</li>
+      <li>3月末までにMVPリリースを目指す方針</li>
+    </ul>
+    <div class="todo">✅ TODO: 田中さんが来週金曜までにQA外部委託の見積もりを取得</div>
+
+    <h2>💬 全文（話者分離済み）</h2>
+    <div class="transcript">
+      <span class="ts">[00:01 → 00:15]</span> <span class="speaker-a">田中:</span> 来期のロードマップだけど、認証基盤を先にやらない？今のままだとスケールしないし<br>
+      <span class="ts">[00:15 → 00:28]</span> <span class="speaker-b">佐藤:</span> 賛成。ただQAのリソースが足りてないから、外部委託も検討しよう<br>
+      <span class="ts">[00:28 → 00:35]</span> <span class="speaker-a">田中:</span> それいいね。じゃあ来週金曜までに見積もり出してもらえる？<br>
+      <span class="ts">[00:35 → 00:42]</span> <span class="speaker-b">佐藤:</span> 了解。あと3月末のMVPリリースは変わらずでいく？<br>
+      <span class="ts">[00:42 → 00:50]</span> <span class="speaker-a">田中:</span> うん、そこは死守で。認証が入れば他のチームもAPI使えるようになるし<br>
+      <div class="fade">…（以下続く）</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
