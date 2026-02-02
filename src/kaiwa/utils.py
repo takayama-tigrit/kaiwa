@@ -6,11 +6,33 @@
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 import wave
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+
+# ---------------------------------------------------------------------------
+# セキュアな文字列ラッパー
+# ---------------------------------------------------------------------------
+
+
+class SecureString:
+    """セキュアな文字列ラッパー（ログ出力時にマスク）"""
+
+    def __init__(self, value: str):
+        self._value = value
+
+    def get(self) -> str:
+        return self._value
+
+    def __str__(self) -> str:
+        return "***REDACTED***"
+
+    def __repr__(self) -> str:
+        return "SecureString(***)"
 
 # ---------------------------------------------------------------------------
 # ログ設定
@@ -29,7 +51,8 @@ def setup_logging(level: int = logging.INFO) -> logging.Logger:
     logging.Logger
         設定済みの 'kaiwa' ロガー。
     """
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    # ディレクトリを 0o700 で作成（所有者のみアクセス可能）
+    LOG_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
 
     logger = logging.getLogger("kaiwa")
     logger.setLevel(level)
@@ -50,9 +73,19 @@ def setup_logging(level: int = logging.INFO) -> logging.Logger:
 
     # ファイルハンドラー（日次ローテーション）
     log_file = LOG_DIR / f"{datetime.now().strftime('%Y-%m-%d')}.log"
-    file_handler = logging.FileHandler(log_file, encoding="utf-8")
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+    
+    # ファイル作成前に umask を設定（0o600 = 所有者のみ読み書き）
+    old_umask = os.umask(0o077)
+    try:
+        file_handler = logging.FileHandler(log_file, encoding="utf-8")
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+    finally:
+        os.umask(old_umask)
+    
+    # 既存ファイルのパーミッションも修正
+    if log_file.exists():
+        log_file.chmod(0o600)
 
     return logger
 
@@ -104,6 +137,7 @@ def get_keychain_password(account: str, service: str) -> str | None:
     str | None
         パスワード文字列。見つからなければ None。
     """
+    logger = logging.getLogger("kaiwa")
     try:
         result = subprocess.run(
             [
@@ -121,7 +155,14 @@ def get_keychain_password(account: str, service: str) -> str | None:
             timeout=10,
         )
         return result.stdout.strip()
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+    except subprocess.TimeoutExpired:
+        logger.error("❌ Keychainアクセスがタイムアウトしました（10秒）")
+        return None
+    except subprocess.CalledProcessError as e:
+        if "could not be found" in e.stderr:
+            logger.debug("Keychainにキーが見つかりません: account=%s, service=%s", account, service)
+        else:
+            logger.error("❌ Keychainアクセスエラー: %s", e.stderr)
         return None
 
 

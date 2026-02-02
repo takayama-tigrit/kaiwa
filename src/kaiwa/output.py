@@ -5,7 +5,10 @@
 
 from __future__ import annotations
 
+import errno
 import logging
+import re
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -15,14 +18,23 @@ logger = logging.getLogger("kaiwa")
 
 def _sanitize_filename(title: str) -> str:
     """タイトルをファイル名に安全な文字列に変換する。"""
-    import re
-    # ファイル名に使えない文字を除去/置換
-    sanitized = re.sub(r'[\\/:*?"<>|]', '', title)
-    sanitized = sanitized.replace(" ", "_").replace("　", "_")
-    # 長すぎる場合は切り詰め
+    # Unicode正規化 + 制御文字除去
+    normalized = unicodedata.normalize('NFKC', title)
+    sanitized = ''.join(c for c in normalized if unicodedata.category(c)[0] != 'C')
+    
+    # ファイルシステム禁止文字の除去
+    sanitized = re.sub(r'[\\/:*?"<>|]', '', sanitized)
+    sanitized = re.sub(r'\s+', '_', sanitized)  # 連続空白を1つの_に
+    sanitized = re.sub(r'_+', '_', sanitized)   # 連続_を1つに
+    
+    # 拡張子の除去（誤認識防止）
+    sanitized = re.sub(r'\.(md|txt|pdf|doc)$', '', sanitized, flags=re.IGNORECASE)
+    
+    # 長さ制限（Unicodeで50文字）
     if len(sanitized) > 50:
         sanitized = sanitized[:50]
-    return sanitized.strip("_")
+    
+    return sanitized.strip('_.-')  # 先頭末尾のゴミ除去
 
 
 def generate_markdown(
@@ -94,7 +106,17 @@ def generate_markdown(
 *生成: kaiwa v0.1.0*
 """
 
-    output_file.write_text(md_content, encoding="utf-8")
-    logger.info("📄 Markdown 保存先: %s", output_file)
+    try:
+        output_file.write_text(md_content, encoding="utf-8")
+        logger.info("📄 Markdown 保存先: %s", output_file)
+    except OSError as e:
+        if e.errno == errno.ENOSPC:  # Disk full
+            logger.error("❌ ディスク容量不足: %s", output_file)
+            from kaiwa.utils import notify
+            notify("kaiwa ❌", "ディスク容量不足")
+            # 部分ファイルの削除
+            if output_file.exists():
+                output_file.unlink()
+        raise
 
     return output_file

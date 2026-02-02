@@ -10,11 +10,19 @@ from __future__ import annotations
 # 必ず他の import より前に適用すること
 # ============================================================
 import torch
+import warnings
 
 _original_torch_load = torch.load
 
 
 def _patched_torch_load(*args, **kwargs):
+    # セキュリティ警告
+    warnings.warn(
+        "torch.load で weights_only=False を使用しています。"
+        "信頼できるモデルソース（HuggingFace公式）のみを使用してください。",
+        category=SecurityWarning,
+        stacklevel=2
+    )
     kwargs["weights_only"] = False
     return _original_torch_load(*args, **kwargs)
 
@@ -111,6 +119,8 @@ def transcribe(
 def _save_intermediate(path: Path, data: dict) -> None:
     """中間成果物を JSON ファイルとして保存する。"""
     try:
+        # ディレクトリが存在しない場合は作成
+        path.parent.mkdir(parents=True, exist_ok=True)
         # segments 内の非シリアライズ可能なオブジェクトを除外
         serializable = _make_serializable(data)
         with open(path, "w", encoding="utf-8") as f:
@@ -118,6 +128,7 @@ def _save_intermediate(path: Path, data: dict) -> None:
         logger.debug("  中間成果物を保存: %s", path)
     except (TypeError, OSError) as e:
         logger.warning("  中間成果物の保存に失敗: %s — %s", path, e)
+        # 重要: メイン処理は続行する（中間ファイル保存は非必須）
 
 
 def _make_serializable(obj: Any) -> Any:

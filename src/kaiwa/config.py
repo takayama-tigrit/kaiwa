@@ -33,6 +33,9 @@ DEFAULTS: dict[str, Any] = {
             "~/Library/Mobile Documents/com~apple~CloudDocs/Transcripts/raw",
         ],
     },
+    "cleanup": {
+        "work_retention_days": 7,  # 0 = 即座に削除, -1 = 削除しない
+    },
 }
 
 CONFIG_PATH = Path.home() / ".kaiwa" / "config.yaml"

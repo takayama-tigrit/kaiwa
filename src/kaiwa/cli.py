@@ -15,6 +15,7 @@ from pathlib import Path
 from kaiwa import __version__
 from kaiwa.config import load_config
 from kaiwa.utils import (
+    SecureString,
     format_timestamp,
     get_keychain_password,
     notify,
@@ -49,15 +50,28 @@ def cmd_process(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     anthropic_key = get_keychain_password("kaiwa", "anthropic-api-key")
+    secure_anthropic_key = None
     if anthropic_key:
+        secure_anthropic_key = SecureString(anthropic_key)
         logger.info("🔑 Anthropic API キー: 取得済み")
     else:
         logger.info("🔑 Anthropic API キー: 未設定（要約スキップ）")
 
     # ----- 中間成果物ディレクトリ -----
     work_base = Path(config.get("paths", {}).get("work", "~/Transcripts/work")).expanduser()
+    
+    # パストラバーサル対策: ファイル名から危険な文字を除去
+    import re
     stem = audio_path.stem
-    work_dir = work_base / stem
+    safe_stem = re.sub(r'[^\w\-.]', '_', stem)
+    work_dir = work_base / safe_stem
+    
+    # 最終的なパスが work_base 配下にあるか検証
+    if not work_dir.resolve().is_relative_to(work_base.resolve()):
+        logger.error("❌ 不正なパス: %s", work_dir)
+        notify("kaiwa ❌", "セキュリティエラー")
+        sys.exit(1)
+    
     work_dir.mkdir(parents=True, exist_ok=True)
     logger.info("📁 作業ディレクトリ: %s", work_dir)
 
@@ -93,12 +107,12 @@ def cmd_process(args: argparse.Namespace) -> None:
     # ----- Step 4: 要約生成 -----
     summary = None
     title = None
-    if anthropic_key:
+    if secure_anthropic_key:
         notify("kaiwa", "🤖 Step 4: Claude で要約生成中...")
 
         from kaiwa.summarize import summarize
 
-        title, summary = summarize(transcript_text, anthropic_key, config)
+        title, summary = summarize(transcript_text, secure_anthropic_key.get(), config)
 
         if summary:
             notify("kaiwa", f"✅ 要約生成完了: {title or '(タイトルなし)'}")
@@ -118,6 +132,16 @@ def cmd_process(args: argparse.Namespace) -> None:
         transcript_lines, summary, audio_path, elapsed, config, title=title
     )
 
+    # ----- クリーンアップ -----
+    cleanup_cfg = config.get("cleanup", {})
+    retention_days = cleanup_cfg.get("work_retention_days", 7)
+    
+    if retention_days == 0 and work_dir and work_dir.exists():
+        # 即座に削除
+        import shutil
+        shutil.rmtree(work_dir)
+        logger.debug("🗑️ 中間ファイルを削除: %s", work_dir)
+    
     # ----- 完了 -----
     elapsed_min = int(elapsed) // 60
     elapsed_sec = int(elapsed) % 60

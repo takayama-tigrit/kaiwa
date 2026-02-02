@@ -7,6 +7,7 @@ Anthropic SDK を使用した Claude による会話要約。
 from __future__ import annotations
 
 import logging
+import re
 import time
 from typing import Any
 
@@ -26,6 +27,28 @@ SUMMARIZE_PROMPT = """以下は対面会話の文字起こしです。話者分�
 
 ## 文字起こし
 """
+
+
+def _sanitize_markdown(text: str) -> str:
+    """Markdownから危険な要素を除去する。
+    
+    Parameters
+    ----------
+    text : str
+        サニタイズ対象のMarkdownテキスト。
+    
+    Returns
+    -------
+    str
+        サニタイズ済みのテキスト。
+    """
+    # <script>タグの除去
+    text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.DOTALL | re.IGNORECASE)
+    # javascript: プロトコルの除去
+    text = re.sub(r'javascript:', '', text, flags=re.IGNORECASE)
+    # data: URIの除去（画像以外）
+    text = re.sub(r'data:(?!image/)', '', text, flags=re.IGNORECASE)
+    return text
 
 
 def _parse_title_and_summary(response: str) -> tuple[str | None, str]:
@@ -110,7 +133,8 @@ def summarize(
             )
 
             raw_text = message.content[0].text
-            title, summary_body = _parse_title_and_summary(raw_text)
+            sanitized = _sanitize_markdown(raw_text)
+            title, summary_body = _parse_title_and_summary(sanitized)
             logger.info(
                 "  ✅ 要約生成完了 (%d 文字, タイトル: %s)",
                 len(summary_body),
