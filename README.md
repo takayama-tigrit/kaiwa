@@ -90,7 +90,11 @@ security add-generic-password -a kaiwa -s anthropic-api-key -w 'sk-ant-YOUR_KEY'
 
 ### Mac で録音（ホットキー）
 
-Raycast の Script Commands 機能を使って、ホットキー一発で録音の開始/停止ができます。
+3つの方法でホットキーを設定できます。お好みの方法を選んでください。
+
+#### 方法 1: Raycast（おすすめ — Raycast ユーザー向け）
+
+[Raycast](https://www.raycast.com/) の Script Commands 機能を使って、ホットキー一発で録音の開始/停止ができます。
 
 **① Raycast を開いて設定画面に入る**
 
@@ -112,14 +116,41 @@ Raycast の Script Commands 機能を使って、ホットキー一発で録音�
 - 「**Record Hotkey**」欄をクリック → 好きなキーの組み合わせを押す
   - おすすめ: `⌘⇧R`（Command + Shift + R）
 
-**④ 使い方**
+#### 方法 2: macOS ショートカット（追加ソフト不要）
 
-1. ホットキーを押す → 🔴 **録音開始**（macOS 通知 + サウンドで確認）
-2. もう一度押す → ⏹ **録音停止** → 自動で文字起こし＋要約が開始
+1. **ショートカット.app** を開く（Spotlight で「ショートカット」と検索）
+2. 「`+`」で新規ショートカットを作成
+3. 「**シェルスクリプトを実行**」アクションを追加
+4. シェルに以下を入力:
+   ```bash
+   /path/to/kaiwa/scripts/toggle-record.sh
+   ```
+   （`/path/to/kaiwa` は実際のクローン先に置き換えてください）
+5. ショートカット名を「kaiwa 録音」などに設定
+6. ショートカットの「ℹ️」（詳細）を開く
+7. 「**キーボードショートカットを追加**」をクリック → 好きなキーを設定（例: `⌘⇧R`）
+
+#### 方法 3: Automator（macOS 標準）
+
+1. **Automator.app** を開く
+2. 「**クイックアクション**」を選択して新規作成
+3. 「ワークフローが受け取る項目」→「**入力なし**」に変更
+4. 左のアクション一覧から「**シェルスクリプトを実行**」をドラッグ
+5. シェルに以下を入力:
+   ```bash
+   /path/to/kaiwa/scripts/toggle-record.sh
+   ```
+6. `⌘S` で保存（名前: 「kaiwa 録音トグル」）
+7. **システム設定** → **キーボード** → **キーボードショートカット** → **サービス** → 「kaiwa 録音トグル」にショートカットキーを割り当て
+
+#### 使い方（共通）
+
+1. 設定したホットキーを押す → 🔴 録音開始（macOS 通知 + サウンド）
+2. もう一度押す → ⏹ 録音停止 → 自動で文字起こし＋要約開始
 3. 処理完了すると macOS 通知でお知らせ
-4. `~/Transcripts/` に Markdown ファイルが生成される
+4. 設定した保存先に Markdown ファイルが生成される
 
-> 💡 初回はマイクのアクセス許可を求められることがあります。許可してください。
+> 💡 初回はマイクのアクセス許可を求められます。許可してください。
 
 ### 手動で処理（CLI）
 
@@ -177,20 +208,38 @@ paths:
 
 設定ファイルがない場合はデフォルト値が使用されます。
 
-### 出力フォルダの変更
+### 保存先の変更
 
-デフォルトでは `~/Transcripts/` に出力されます。変更するには `~/.kaiwa/config.yaml` を編集してください：
+デフォルトでは `~/Transcripts/` にすべてのファイルが保存されます。
+`~/.kaiwa/config.yaml` の `paths` セクションで保存先を自由に変更できます。
+
+| 設定キー | 保存されるもの | デフォルト |
+|---------|--------------|-----------|
+| `output` | **要約 Markdown** ← 最終成果物 | `~/Transcripts/` |
+| `raw` | 録音ファイル（.wav） | `~/Transcripts/raw/` |
+| `work` | 中間成果物（文字起こし JSON 等） | `~/Transcripts/work/` |
+
+**例: Google Drive に保存する場合**
 
 ```yaml
 paths:
-  output: ~/Documents/議事録    # Markdown 出力先
-  raw: ~/Documents/議事録/raw   # 録音ファイル保存先
-  work: ~/Documents/議事録/work # 中間成果物保存先
+  output: ~/Library/CloudStorage/GoogleDrive-you@gmail.com/マイドライブ/Transcripts
+  raw: ~/Library/CloudStorage/GoogleDrive-you@gmail.com/マイドライブ/Transcripts/raw
+  work: ~/Library/CloudStorage/GoogleDrive-you@gmail.com/マイドライブ/Transcripts/work
 ```
 
-> ⚠️ `toggle-record.sh` の録音保存先は `paths.raw` の設定に従います。変更後は Raycast の再登録は不要です。
+> これで要約 Markdown、録音ファイル、中間成果物がすべて Google Drive に保存され、他のデバイスからも閲覧できます。
+
+**Google Drive のパス確認方法：**
+1. Finder で Google Drive フォルダを開く
+2. フォルダを右クリック →「情報を見る」
+3. 「場所」のパスを確認（`~/Library/CloudStorage/GoogleDrive-...` の形式）
+
+> 💡 `paths.raw` を変更すると、録音トグル（ホットキー）の保存先も自動的に変わります。
 
 ### iPhone / スマホ連携（クラウドストレージ監視）
+
+> これは**外部デバイスからの音声ファイルの自動取り込み**設定です。要約ファイルの保存先を変更するには上の「[保存先の変更](#保存先の変更)」を参照してください。
 
 iCloud Drive だけでなく、**Google Drive** や **Dropbox** 経由でも自動処理できます。
 
