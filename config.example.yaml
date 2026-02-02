@@ -18,4 +18,7 @@ paths:
   output: ~/Transcripts
   raw: ~/Transcripts/raw
   work: ~/Transcripts/work
-  icloud_watch: ~/Library/Mobile Documents/com~apple~CloudDocs/Transcripts/raw
+  watch_dirs:
+    - ~/Library/Mobile Documents/com~apple~CloudDocs/Transcripts/raw  # iCloud Drive
+    # - ~/Library/CloudStorage/GoogleDrive-yourname@gmail.com/マイドライブ/Transcripts/raw  # Google Drive
+    # - ~/Dropbox/Transcripts/raw  # Dropbox

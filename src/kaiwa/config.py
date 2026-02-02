@@ -29,7 +29,9 @@ DEFAULTS: dict[str, Any] = {
         "output": "~/Transcripts",
         "raw": "~/Transcripts/raw",
         "work": "~/Transcripts/work",
-        "icloud_watch": "~/Library/Mobile Documents/com~apple~CloudDocs/Transcripts/raw",
+        "watch_dirs": [
+            "~/Library/Mobile Documents/com~apple~CloudDocs/Transcripts/raw",
+        ],
     },
 }
 
@@ -47,12 +49,27 @@ def _deep_merge(base: dict, override: dict) -> dict:
     return merged
 
 
+def _migrate_icloud_watch(cfg: dict) -> dict:
+    """旧 icloud_watch 設定を watch_dirs に変換する（後方互換）。"""
+    if "paths" in cfg:
+        paths = cfg["paths"]
+        if "icloud_watch" in paths and "watch_dirs" not in paths:
+            paths["watch_dirs"] = [paths["icloud_watch"]]
+        paths.pop("icloud_watch", None)
+    return cfg
+
+
 def _expand_paths(cfg: dict) -> dict:
     """paths セクションの ~ をホームディレクトリに展開する。"""
     if "paths" in cfg:
         for key, value in cfg["paths"].items():
             if isinstance(value, str):
                 cfg["paths"][key] = str(Path(value).expanduser())
+            elif isinstance(value, list):
+                cfg["paths"][key] = [
+                    str(Path(v).expanduser()) if isinstance(v, str) else v
+                    for v in value
+                ]
     return cfg
 
 
@@ -86,4 +103,5 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
                 "設定ファイルの読み込みに失敗しました (%s): %s — デフォルト値を使用します", path, e
             )
 
+    config = _migrate_icloud_watch(config)
     return _expand_paths(config)

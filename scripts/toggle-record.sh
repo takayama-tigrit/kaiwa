@@ -13,9 +13,18 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 KAIWA_DIR="$HOME/.kaiwa"
 PID_FILE="$KAIWA_DIR/recording.pid"
 CURRENT_FILE="$KAIWA_DIR/current_recording.txt"
-OUTPUT_DIR="$HOME/Transcripts/raw"
 VENV_PYTHON="$KAIWA_DIR/venv/bin/python"
 KAIWA_SRC="$(cd "$(dirname "$0")/.." && pwd)/src"
+
+# config.yaml から raw path を取得
+RAW_PATH="$HOME/Transcripts/raw"  # デフォルト
+if [ -f "$KAIWA_DIR/config.yaml" ]; then
+    _raw=$(grep "^  raw:" "$KAIWA_DIR/config.yaml" 2>/dev/null | sed 's/^  raw: *//' | sed 's/#.*//' | xargs)
+    if [ -n "$_raw" ]; then
+        RAW_PATH="${_raw/#\~/$HOME}"
+    fi
+fi
+OUTPUT_DIR="$RAW_PATH"
 
 mkdir -p "$KAIWA_DIR" "$OUTPUT_DIR"
 

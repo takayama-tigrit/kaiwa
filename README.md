@@ -88,12 +88,38 @@ security add-generic-password -a kaiwa -s anthropic-api-key -w 'sk-ant-YOUR_KEY'
 
 ## 🚀 使い方
 
-### Mac で録音してそのまま処理（ホットキー）
+### Mac で録音（ホットキー）
 
-1. Raycast に `scripts/` フォルダを Script Commands として登録
-2. ホットキーで「kaiwa 録音トグル」を実行
-3. もう一度押すと録音停止 → 自動的に処理開始
-4. 完了すると macOS 通知でお知らせ
+Raycast の Script Commands 機能を使って、ホットキー一発で録音の開始/停止ができます。
+
+**① Raycast を開いて設定画面に入る**
+
+- Raycast を起動（デフォルト: `⌥ Space`）
+- `⌘,` で設定画面を開く
+
+**② Script Commands 拡張を追加する**
+
+- 左メニューから「Extensions」を選択
+- 右上の「`+`」ボタンをクリック
+- 「**Add Script Directory**」を選択
+- ファイルダイアログが開くので、kaiwa リポジトリの **`scripts/`** フォルダを選択
+  - 例: `/Users/あなたのユーザー名/kaiwa/scripts/`
+
+**③ ホットキーを割り当てる**
+
+- Extensions 一覧に「**kaiwa 録音トグル 🎙️**」が表示される
+- その項目をクリック
+- 「**Record Hotkey**」欄をクリック → 好きなキーの組み合わせを押す
+  - おすすめ: `⌘⇧R`（Command + Shift + R）
+
+**④ 使い方**
+
+1. ホットキーを押す → 🔴 **録音開始**（macOS 通知 + サウンドで確認）
+2. もう一度押す → ⏹ **録音停止** → 自動で文字起こし＋要約が開始
+3. 処理完了すると macOS 通知でお知らせ
+4. `~/Transcripts/` に Markdown ファイルが生成される
+
+> 💡 初回はマイクのアクセス許可を求められることがあります。許可してください。
 
 ### 手動で処理（CLI）
 
@@ -105,9 +131,9 @@ PYTHONPATH=/path/to/kaiwa/src ~/.kaiwa/venv/bin/python -m kaiwa.cli process reco
 PYTHONPATH=/path/to/kaiwa/src ~/.kaiwa/venv/bin/python -m kaiwa.cli version
 ```
 
-### iPhone 連携（iCloud 自動処理）
+### iPhone 連携（クラウドストレージ自動処理）
 
-1. iPhone のボイスメモを iCloud Drive の `Transcripts/raw/` に保存
+1. iPhone のボイスメモをクラウドストレージの `Transcripts/raw/` に保存
 2. `install-daemon.sh` で監視デーモンを有効化
 3. ファイルが同期されると自動的に処理開始
 
@@ -118,6 +144,8 @@ PYTHONPATH=/path/to/kaiwa/src ~/.kaiwa/venv/bin/python -m kaiwa.cli version
 # デーモンの無効化
 ./scripts/install-daemon.sh --uninstall
 ```
+
+> 💡 iCloud 以外にも Google Drive や Dropbox を監視対象に追加できます。詳しくは下の「iPhone / スマホ連携（クラウドストレージ監視）」を参照してください。
 
 ## 🔧 設定
 
@@ -141,10 +169,56 @@ paths:
   output: ~/Transcripts      # Markdown 出力先
   raw: ~/Transcripts/raw     # 録音ファイル保存先
   work: ~/Transcripts/work   # 中間成果物保存先
-  icloud_watch: ~/Library/Mobile Documents/com~apple~CloudDocs/Transcripts/raw
+  watch_dirs:
+    - ~/Library/Mobile Documents/com~apple~CloudDocs/Transcripts/raw  # iCloud Drive
+    # - ~/Library/CloudStorage/GoogleDrive-yourname@gmail.com/マイドライブ/Transcripts/raw  # Google Drive
+    # - ~/Dropbox/Transcripts/raw  # Dropbox
 ```
 
 設定ファイルがない場合はデフォルト値が使用されます。
+
+### 出力フォルダの変更
+
+デフォルトでは `~/Transcripts/` に出力されます。変更するには `~/.kaiwa/config.yaml` を編集してください：
+
+```yaml
+paths:
+  output: ~/Documents/議事録    # Markdown 出力先
+  raw: ~/Documents/議事録/raw   # 録音ファイル保存先
+  work: ~/Documents/議事録/work # 中間成果物保存先
+```
+
+> ⚠️ `toggle-record.sh` の録音保存先は `paths.raw` の設定に従います。変更後は Raycast の再登録は不要です。
+
+### iPhone / スマホ連携（クラウドストレージ監視）
+
+iCloud Drive だけでなく、**Google Drive** や **Dropbox** 経由でも自動処理できます。
+
+`~/.kaiwa/config.yaml` の `watch_dirs` にクラウドストレージのパスを追加してください：
+
+```yaml
+paths:
+  watch_dirs:
+    # iCloud Drive
+    - ~/Library/Mobile Documents/com~apple~CloudDocs/Transcripts/raw
+
+    # Google Drive（Google Drive for Desktop が必要）
+    - ~/Library/CloudStorage/GoogleDrive-あなたのメール@gmail.com/マイドライブ/Transcripts/raw
+
+    # Dropbox
+    - ~/Dropbox/Transcripts/raw
+```
+
+**Google Drive のパス確認方法：**
+1. Finder で Google Drive フォルダを開く
+2. 任意のファイルを右クリック → 「情報を見る」
+3. 「場所」に表示されるパスを確認
+
+> 💡 `watch_dirs` を変更したら、監視デーモンを再起動してください：
+> ```bash
+> ./scripts/install-daemon.sh --uninstall
+> ./scripts/install-daemon.sh
+> ```
 
 ## 🏗️ アーキテクチャ
 

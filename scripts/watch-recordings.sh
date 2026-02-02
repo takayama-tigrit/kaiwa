@@ -1,8 +1,8 @@
 #!/bin/bash
-# kaiwa — iCloud フォルダ監視スクリプト
+# kaiwa — フォルダ監視スクリプト
 #
-# iCloud Drive の録音フォルダを監視し、新しい WAV ファイルを検出したら
-# 自動的に処理パイプラインを起動する。
+# 設定された監視ディレクトリ（iCloud / Google Drive / Dropbox 等）を監視し、
+# 新しい音声ファイルを検出したら自動的に処理パイプラインを起動する。
 #
 # 処理済みログは ~/.kaiwa/processed.log に永続化し、
 # 100 行を超えたら 50 行にローテーションする。
@@ -14,13 +14,52 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 # ── 設定 ──
 KAIWA_DIR="$HOME/.kaiwa"
-WATCH_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Transcripts/raw"
 VENV_PYTHON="$KAIWA_DIR/venv/bin/python"
 KAIWA_SRC="$(cd "$(dirname "$0")/.." && pwd)/src"
 PROCESSED_LOG="$KAIWA_DIR/processed.log"
 
-mkdir -p "$KAIWA_DIR" "$WATCH_DIR"
+mkdir -p "$KAIWA_DIR"
 touch "$PROCESSED_LOG"
+
+# ── config.yaml から watch_dirs を取得 ──
+WATCH_DIRS=()
+if [ -f "$KAIWA_DIR/config.yaml" ]; then
+    in_watch=false
+    while IFS= read -r line; do
+        if echo "$line" | grep -q "watch_dirs:"; then
+            in_watch=true; continue
+        fi
+        if $in_watch; then
+            if echo "$line" | grep -q "^    - "; then
+                dir=$(echo "$line" | sed 's/^    - //' | sed 's/#.*//' | xargs)
+                dir="${dir/#\~/$HOME}"
+                [ -n "$dir" ] && WATCH_DIRS+=("$dir")
+            elif echo "$line" | grep -qv "^    "; then
+                in_watch=false
+            fi
+        fi
+    done < "$KAIWA_DIR/config.yaml"
+
+    # 後方互換: 旧 icloud_watch 設定を読む
+    if [ ${#WATCH_DIRS[@]} -eq 0 ]; then
+        _icloud=$(grep "^  icloud_watch:" "$KAIWA_DIR/config.yaml" 2>/dev/null | sed 's/^  icloud_watch: *//' | sed 's/#.*//' | xargs)
+        if [ -n "$_icloud" ]; then
+            _icloud="${_icloud/#\~/$HOME}"
+            WATCH_DIRS+=("$_icloud")
+        fi
+    fi
+fi
+
+# デフォルト（config.yaml に watch_dirs がない場合）
+if [ ${#WATCH_DIRS[@]} -eq 0 ]; then
+    WATCH_DIRS=("$HOME/Library/Mobile Documents/com~apple~CloudDocs/Transcripts/raw")
+fi
+
+# 全ディレクトリを作成
+for dir in "${WATCH_DIRS[@]}"; do
+    mkdir -p "$dir"
+    echo "  📁 監視: $dir"
+done
 
 # ── ヘルパー関数 ──
 
@@ -72,10 +111,10 @@ wait_for_sync() {
 
 # ── メイン処理 ──
 
-echo "👀 kaiwa — フォルダ監視開始: $WATCH_DIR"
-notify "kaiwa" "フォルダ監視を開始しました"
+echo "👀 kaiwa — フォルダ監視開始 (${#WATCH_DIRS[@]} ディレクトリ)"
+notify "kaiwa" "フォルダ監視を開始しました (${#WATCH_DIRS[@]} ディレクトリ)"
 
-fswatch -0 --event Created "$WATCH_DIR" | while read -d "" event; do
+fswatch -0 --event Created "${WATCH_DIRS[@]}" | while read -d "" event; do
     if [[ "$event" == *.wav || "$event" == *.aiff || "$event" == *.mp3 ]]; then
         # 重複チェック
         if grep -qF "$event" "$PROCESSED_LOG" 2>/dev/null; then
