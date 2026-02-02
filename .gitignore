@@ -11,3 +11,6 @@ build/
 config.yaml
 .DS_Store
 .pytest_cache/
+
+# Agent workspace (AI assistant docs, not for public)
+.agents/
