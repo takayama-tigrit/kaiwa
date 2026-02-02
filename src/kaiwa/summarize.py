@@ -132,7 +132,8 @@ def summarize(
                 ],
             )
 
-            raw_text = message.content[0].text
+            content_block = message.content[0]
+            raw_text = content_block.text if hasattr(content_block, "text") else str(content_block)
             sanitized = _sanitize_markdown(raw_text)
             title, summary_body = _parse_title_and_summary(sanitized)
             logger.info(

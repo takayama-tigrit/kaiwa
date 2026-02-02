@@ -32,12 +32,13 @@ torch.load = _patched_torch_load
 # ============================================================
 # 通常の import（torch.load パッチの後に配置する必要がある）
 # ============================================================
-import json  # noqa: E402
 import logging  # noqa: E402
 from pathlib import Path  # noqa: E402
 from typing import Any  # noqa: E402
 
 import whisperx  # noqa: E402
+
+from kaiwa.utils import _save_intermediate  # noqa: E402
 
 logger = logging.getLogger("kaiwa")
 
@@ -193,35 +194,4 @@ def _transcribe_with_whisperx(
 
     logger.info("  ✅ アラインメント完了")
 
-    return result
-
-
-def _save_intermediate(path: Path, data: dict) -> None:
-    """中間成果物を JSON ファイルとして保存する。"""
-    try:
-        # ディレクトリが存在しない場合は作成
-        path.parent.mkdir(parents=True, exist_ok=True)
-        # segments 内の非シリアライズ可能なオブジェクトを除外
-        serializable = _make_serializable(data)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(serializable, f, ensure_ascii=False, indent=2)
-        logger.debug("  中間成果物を保存: %s", path)
-    except (TypeError, OSError) as e:
-        logger.warning("  中間成果物の保存に失敗: %s — %s", path, e)
-        # 重要: メイン処理は続行する（中間ファイル保存は非必須）
-
-
-def _make_serializable(obj: Any) -> Any:
-    """JSON シリアライズ不可能なオブジェクトを変換する。"""
-    if isinstance(obj, dict):
-        return {k: _make_serializable(v) for k, v in obj.items()}
-    elif isinstance(obj, (list, tuple)):
-        return [_make_serializable(item) for item in obj]
-    elif isinstance(obj, float):
-        if obj != obj:  # NaN check
-            return None
-        return obj
-    elif isinstance(obj, (int, str, bool, type(None))):
-        return obj
-    else:
-        return str(obj)
+    return dict(result)

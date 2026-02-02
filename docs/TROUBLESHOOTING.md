@@ -309,7 +309,7 @@ top -pid $(pgrep -f "kaiwa.cli")
 `~/.kaiwa/config.yaml` で WhisperX のバッチサイズを調整：
 ```yaml
 whisper:
-  batch_size: 8  # デフォルトは 16。メモリ不足なら 4 や 2 に減らす
+  batch_size: 8  # デフォルトは 8。メモリ不足なら 4 や 2 に減らす
 ```
 
 **3) 長時間音声を分割**
@@ -404,7 +404,7 @@ whisper:
 精度と速度のトレードオフ：
 ```yaml
 whisper:
-  model: base  # tiny < base < small < medium < large-v2（デフォルト）
+  model: base  # tiny < base < small < medium < large-v3-turbo（デフォルト）
 ```
 
 | モデル | 速度 | 精度 | メモリ |

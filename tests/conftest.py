@@ -8,6 +8,14 @@ from pathlib import Path
 import pytest
 
 
+def pytest_configure(config):
+    """pytest カスタムマーカーを登録"""
+    config.addinivalue_line(
+        "markers",
+        "integration: E2Eテスト（MLモデルが必要なため、CI環境では除外）",
+    )
+
+
 @pytest.fixture
 def tmp_audio_file(tmp_path: Path) -> Path:
     """テスト用のダミー音声ファイル（WAV）を作成する。"""

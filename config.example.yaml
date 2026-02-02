@@ -26,3 +26,6 @@ paths:
     - ~/Library/Mobile Documents/com~apple~CloudDocs/Transcripts/raw  # iCloud Drive
     # - ~/Library/CloudStorage/GoogleDrive-yourname@gmail.com/マイドライブ/Transcripts/raw  # Google Drive
     # - ~/Dropbox/Transcripts/raw  # Dropbox
+
+cleanup:
+  work_retention_days: 7  # 0 = 即座に削除, -1 = 削除しない

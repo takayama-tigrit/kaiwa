@@ -5,6 +5,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 echo "🎙️  kaiwa セットアップ"
 echo "=========================="
 echo ""
@@ -94,7 +96,6 @@ echo "  ✅ パッケージインストール完了"
 # ── 設定ファイル ──
 
 echo ""
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_FILE="${KAIWA_DIR}/config.yaml"
 
 if [ -f "${CONFIG_FILE}" ]; then
