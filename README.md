@@ -18,306 +18,96 @@ Macの録音 or iPhoneのボイスメモから、話者分離付き文字起こ�
 | **データ管理** | クラウド | 完全ローカル |
 | **カスタマイズ** | ✕ | フルコントロール |
 
-## 📄 デモ — 出力例
+## 📄 出力例
 
 ```markdown
 # 会話メモ — 2026-02-02 15:00
 
 ## 📋 要約
-
 - プロジェクトXの進捗を共有。設計フェーズ完了、実装に着手予定
-- 来週水曜にクライアントレビュー予定
 - **決定事項**: デザインはA案で進行
 - **TODO**: 田中さん → API設計書を金曜までに共有
 
 ## 💬 全文（話者分離済み）
-
 [00:00 → 00:15] SPEAKER_00: それでは始めましょうか。プロジェクトXの進捗について...
 [00:15 → 00:32] SPEAKER_01: はい、設計フェーズは予定通り完了しました。
-[00:32 → 00:48] SPEAKER_00: 素晴らしいですね。クライアントレビューはいつ頃...
 ```
 
-## 🖥️ 必要環境
+## 🚀 クイックスタート
 
-- **macOS** (Apple Silicon 推奨 — Intel でも動作します)
-- **Python 3.10+**
-- **Homebrew**
-- **約 4GB** のストレージ（WhisperX モデル用）
+### 必要環境
+- macOS (Apple Silicon 推奨)
+- Python 3.10+
+- Homebrew
 
-## 📦 インストール
+### インストール
 
 ```bash
-# リポジトリをクローン
 git clone https://github.com/takayama-tigrit/kaiwa.git
 cd kaiwa
-
-# セットアップ（依存関係インストール + venv 作成）
-chmod +x setup.sh
 ./setup.sh
 ```
 
-`setup.sh` が行うこと：
-- `sox`, `fswatch` のインストール（Homebrew）
-- `~/.kaiwa/venv` に Python 仮想環境を作成
-- WhisperX, Anthropic SDK, PyYAML をインストール
-- `~/.kaiwa/config.yaml` をコピー
-- 必要なディレクトリを作成
+### 初期設定
 
-## ⚙️ 初期設定
-
-### 1. HuggingFace トークン（必須）
-
-話者分離に [pyannote.audio](https://github.com/pyannote/pyannote-audio) を使用します。以下のモデルの利用規約に同意してください：
-
-- [pyannote/speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1)
-- [pyannote/segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0)
-
-トークンを Keychain に保存：
+HuggingFace トークンと Anthropic API キーを macOS Keychain に登録します。
 
 ```bash
 security add-generic-password -a kaiwa -s hf-token -w 'hf_YOUR_TOKEN'
-```
-
-### 2. Anthropic API キー（オプション — 要約機能に必要）
-
-```bash
 security add-generic-password -a kaiwa -s anthropic-api-key -w 'sk-ant-YOUR_KEY'
 ```
 
-> 💡 API キーは macOS Keychain に暗号化して保存されます。環境変数や平文ファイルには保存しません。
+> 📖 詳細な手順（HFアカウント作成、モデルライセンス同意）: [docs/SETUP.md](docs/SETUP.md)
 
-## 🚀 使い方
+## 🎤 使い方
 
-### Mac で録音（ホットキー）
+### ホットキーで録音（Mac）
 
-3つの方法でホットキーを設定できます。お好みの方法を選んでください。
+ホットキーを押すだけで録音開始/停止。停止後に自動で文字起こし＋要約。
 
-#### 方法 1: Raycast（おすすめ — Raycast ユーザー向け）
+1. ホットキーを設定（3つの方法から選択）
+2. ホットキー → 🔴 録音開始
+3. もう一度 → ⏹ 停止 → 自動処理 → Markdown出力
 
-[Raycast](https://www.raycast.com/) の Script Commands 機能を使って、ホットキー一発で録音の開始/停止ができます。
+> 📖 ホットキーの設定方法: [docs/HOTKEY.md](docs/HOTKEY.md)
 
-**① Raycast を開いて設定画面に入る**
-
-- Raycast を起動（デフォルト: `⌥ Space`）
-- `⌘,` で設定画面を開く
-
-**② Script Commands 拡張を追加する**
-
-- 左メニューから「Extensions」を選択
-- 右上の「`+`」ボタンをクリック
-- 「**Add Script Directory**」を選択
-- ファイルダイアログが開くので、kaiwa リポジトリの **`scripts/`** フォルダを選択
-  - 例: `/Users/あなたのユーザー名/kaiwa/scripts/`
-
-**③ ホットキーを割り当てる**
-
-- Extensions 一覧に「**kaiwa 録音トグル 🎙️**」が表示される
-- その項目をクリック
-- 「**Record Hotkey**」欄をクリック → 好きなキーの組み合わせを押す
-  - おすすめ: `⌘⇧R`（Command + Shift + R）
-
-#### 方法 2: macOS ショートカット（追加ソフト不要）
-
-1. **ショートカット.app** を開く（Spotlight で「ショートカット」と検索）
-2. 「`+`」で新規ショートカットを作成
-3. 「**シェルスクリプトを実行**」アクションを追加
-4. シェルに以下を入力:
-   ```bash
-   /path/to/kaiwa/scripts/toggle-record.sh
-   ```
-   （`/path/to/kaiwa` は実際のクローン先に置き換えてください）
-5. ショートカット名を「kaiwa 録音」などに設定
-6. ショートカットの「ℹ️」（詳細）を開く
-7. 「**キーボードショートカットを追加**」をクリック → 好きなキーを設定（例: `⌘⇧R`）
-
-#### 方法 3: Automator（macOS 標準）
-
-1. **Automator.app** を開く
-2. 「**クイックアクション**」を選択して新規作成
-3. 「ワークフローが受け取る項目」→「**入力なし**」に変更
-4. 左のアクション一覧から「**シェルスクリプトを実行**」をドラッグ
-5. シェルに以下を入力:
-   ```bash
-   /path/to/kaiwa/scripts/toggle-record.sh
-   ```
-6. `⌘S` で保存（名前: 「kaiwa 録音トグル」）
-7. **システム設定** → **キーボード** → **キーボードショートカット** → **サービス** → 「kaiwa 録音トグル」にショートカットキーを割り当て
-
-#### 使い方（共通）
-
-1. 設定したホットキーを押す → 🔴 録音開始（macOS 通知 + サウンド）
-2. もう一度押す → ⏹ 録音停止 → 自動で文字起こし＋要約開始
-3. 処理完了すると macOS 通知でお知らせ
-4. 設定した保存先に Markdown ファイルが生成される
-
-> 💡 初回はマイクのアクセス許可を求められます。許可してください。
-
-### 手動で処理（CLI）
+### コマンドラインで処理
 
 ```bash
-# 音声ファイルを処理
-PYTHONPATH=/path/to/kaiwa/src ~/.kaiwa/venv/bin/python -m kaiwa.cli process recording.wav
-
-# バージョン表示
-PYTHONPATH=/path/to/kaiwa/src ~/.kaiwa/venv/bin/python -m kaiwa.cli version
+PYTHONPATH=./src ~/.kaiwa/venv/bin/python -m kaiwa.cli process recording.wav
 ```
 
-### iPhone 連携（クラウドストレージ自動処理）
+### iPhone連携
 
-1. iPhone のボイスメモをクラウドストレージの `Transcripts/raw/` に保存
-2. `install-daemon.sh` で監視デーモンを有効化
-3. ファイルが同期されると自動的に処理開始
+iPhoneで録音 → クラウドストレージ経由で Mac に自動同期 → 自動処理。iCloud / Google Drive / Dropbox に対応。
 
 ```bash
-# デーモンの有効化
-./scripts/install-daemon.sh
-
-# デーモンの無効化
-./scripts/install-daemon.sh --uninstall
+./scripts/install-daemon.sh  # 監視デーモン有効化
 ```
 
-> 💡 iCloud 以外にも Google Drive や Dropbox を監視対象に追加できます。詳しくは下の「iPhone / スマホ連携（クラウドストレージ監視）」を参照してください。
+> 📖 詳細な設定: [docs/CONFIGURATION.md](docs/CONFIGURATION.md#iphone--スマホ連携クラウドストレージ監視)
 
-## 🔧 設定
+## ⚙️ 設定
 
-設定ファイル: `~/.kaiwa/config.yaml`
+設定ファイル `~/.kaiwa/config.yaml` で、モデル、保存先、クラウドストレージ連携などをカスタマイズできます。
 
-```yaml
-whisper:
-  model: large-v3-turbo     # WhisperX モデル
-  device: cpu                # cpu のみ対応（MPS 非対応）
-  compute_type: float32
-  language: ja
-  batch_size: 8
+> 📖 設定リファレンス: [docs/CONFIGURATION.md](docs/CONFIGURATION.md)
 
-claude:
-  model: claude-3-5-haiku-latest
-  max_tokens: 2048
-  timeout: 120
-  max_retries: 3             # API リトライ回数
+主な設定項目:
+- **保存先の変更** — Google Drive や任意のフォルダに出力可能
+- **クラウドストレージ監視** — iCloud / Google Drive / Dropbox
+- **モデル / 言語** — WhisperX のモデルや言語を変更
+- **要約 AI** — Claude のモデルやリトライ回数
 
-paths:
-  output: ~/Transcripts      # Markdown 出力先
-  raw: ~/Transcripts/raw     # 録音ファイル保存先
-  work: ~/Transcripts/work   # 中間成果物保存先
-  watch_dirs:
-    - ~/Library/Mobile Documents/com~apple~CloudDocs/Transcripts/raw  # iCloud Drive
-    # - ~/Library/CloudStorage/GoogleDrive-yourname@gmail.com/マイドライブ/Transcripts/raw  # Google Drive
-    # - ~/Dropbox/Transcripts/raw  # Dropbox
-```
+## 📖 ドキュメント
 
-設定ファイルがない場合はデフォルト値が使用されます。
-
-### 保存先の変更
-
-デフォルトでは `~/Transcripts/` にすべてのファイルが保存されます。
-`~/.kaiwa/config.yaml` の `paths` セクションで保存先を自由に変更できます。
-
-| 設定キー | 保存されるもの | デフォルト |
-|---------|--------------|-----------|
-| `output` | **要約 Markdown** ← 最終成果物 | `~/Transcripts/` |
-| `raw` | 録音ファイル（.wav） | `~/Transcripts/raw/` |
-| `work` | 中間成果物（文字起こし JSON 等） | `~/Transcripts/work/` |
-
-**例: Google Drive に保存する場合**
-
-```yaml
-paths:
-  output: ~/Library/CloudStorage/GoogleDrive-you@gmail.com/マイドライブ/Transcripts
-  raw: ~/Library/CloudStorage/GoogleDrive-you@gmail.com/マイドライブ/Transcripts/raw
-  work: ~/Library/CloudStorage/GoogleDrive-you@gmail.com/マイドライブ/Transcripts/work
-```
-
-> これで要約 Markdown、録音ファイル、中間成果物がすべて Google Drive に保存され、他のデバイスからも閲覧できます。
-
-**Google Drive のパス確認方法：**
-1. Finder で Google Drive フォルダを開く
-2. フォルダを右クリック →「情報を見る」
-3. 「場所」のパスを確認（`~/Library/CloudStorage/GoogleDrive-...` の形式）
-
-> 💡 `paths.raw` を変更すると、録音トグル（ホットキー）の保存先も自動的に変わります。
-
-### iPhone / スマホ連携（クラウドストレージ監視）
-
-> これは**外部デバイスからの音声ファイルの自動取り込み**設定です。要約ファイルの保存先を変更するには上の「[保存先の変更](#保存先の変更)」を参照してください。
-
-iCloud Drive だけでなく、**Google Drive** や **Dropbox** 経由でも自動処理できます。
-
-`~/.kaiwa/config.yaml` の `watch_dirs` にクラウドストレージのパスを追加してください：
-
-```yaml
-paths:
-  watch_dirs:
-    # iCloud Drive
-    - ~/Library/Mobile Documents/com~apple~CloudDocs/Transcripts/raw
-
-    # Google Drive（Google Drive for Desktop が必要）
-    - ~/Library/CloudStorage/GoogleDrive-あなたのメール@gmail.com/マイドライブ/Transcripts/raw
-
-    # Dropbox
-    - ~/Dropbox/Transcripts/raw
-```
-
-**Google Drive のパス確認方法：**
-1. Finder で Google Drive フォルダを開く
-2. 任意のファイルを右クリック → 「情報を見る」
-3. 「場所」に表示されるパスを確認
-
-> 💡 `watch_dirs` を変更したら、監視デーモンを再起動してください：
-> ```bash
-> ./scripts/install-daemon.sh --uninstall
-> ./scripts/install-daemon.sh
-> ```
-
-## 🏗️ アーキテクチャ
-
-```
-音声ファイル → [検証] → [WhisperX 文字起こし] → [アラインメント]
-    → [話者分離] → [Claude 要約] → [Markdown 出力]
-```
-
-各ステップの中間成果物は `~/Transcripts/work/<recording_stem>/` に保存されます。処理が途中で失敗しても、完了済みステップの結果は残ります。
-
-詳細: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-
-## ❓ トラブルシューティング
-
-よくある問題と解決策: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
-
-**クイックチェック:**
-
-```bash
-# Keychain の確認
-security find-generic-password -a kaiwa -s hf-token -w
-security find-generic-password -a kaiwa -s anthropic-api-key -w
-
-# ログの確認
-cat ~/.kaiwa/logs/$(date +%Y-%m-%d).log
-
-# 中間成果物の確認
-ls ~/Transcripts/work/
-```
-
-## 📁 ディレクトリ構成
-
-```
-~/.kaiwa/
-├── config.yaml       # 設定ファイル
-├── venv/             # Python 仮想環境
-├── logs/             # ログファイル（日次）
-├── processed.log     # 処理済みファイル記録
-├── recording.pid     # 録音プロセス PID
-└── current_recording.txt
-
-~/Transcripts/
-├── *.md              # 出力 Markdown
-├── raw/              # 録音ファイル
-└── work/             # 中間成果物
-    └── <recording_stem>/
-        ├── 01_transcribe.json
-        ├── 02_align.json
-        └── 03_diarize.json
-```
+| ドキュメント | 内容 |
+|------------|------|
+| [SETUP.md](docs/SETUP.md) | インストール・初期設定の詳細 |
+| [HOTKEY.md](docs/HOTKEY.md) | ホットキー設定（Raycast / ショートカット / Automator） |
+| [CONFIGURATION.md](docs/CONFIGURATION.md) | 設定ファイルの全リファレンス |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | システム設計・データフロー |
+| [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | よくある問題と解決策 |
 
 ## 📄 ライセンス
 
