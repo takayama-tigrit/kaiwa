@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f0f1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 28px 32px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    width: 680px;
+  }
+
+  .workflow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .step-circle {
+    width: 90px;
+    height: 90px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .step-1 .step-circle {
+    background: linear-gradient(135deg, #ff4757, #ff6b81);
+  }
+  .step-2 .step-circle {
+    background: linear-gradient(135deg, #ffa502, #ff6348);
+  }
+  .step-3 .step-circle {
+    background: linear-gradient(135deg, #3742fa, #5f6cff);
+  }
+  .step-4 .step-circle {
+    background: linear-gradient(135deg, #2ed573, #1abc9c);
+  }
+
+  .step-label {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .step-desc {
+    color: rgba(255,255,255,0.45);
+    font-size: 11.5px;
+    text-align: center;
+    max-width: 110px;
+    line-height: 1.4;
+  }
+
+  .arrow {
+    color: rgba(255,255,255,0.2);
+    font-size: 28px;
+    margin: 0 20px;
+    margin-bottom: 40px;
+  }
+
+  .time-badge {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.5);
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    margin-top: -4px;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+<div class="workflow">
+  <div class="step step-1">
+    <div class="step-circle">🎙️</div>
+    <div class="step-label">録音</div>
+    <div class="step-desc">ホットキーを<br>押すだけ！</div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <div class="step step-2">
+    <div class="step-circle">📝</div>
+    <div class="step-label">文字起こし</div>
+    <div class="step-desc">完全ローカル<br>処理で安心</div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <div class="step step-3">
+    <div class="step-circle">👥</div>
+    <div class="step-label">話者分離</div>
+    <div class="step-desc">誰が何を言ったか<br>自動で分離</div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <div class="step step-4">
+    <div class="step-circle">✨</div>
+    <div class="step-label">AI要約</div>
+    <div class="step-desc">要点・TODO<br>を自動抽出</div>
+  </div>
+</div>
+
+</body>
+</html>

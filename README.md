@@ -4,9 +4,27 @@
 [![Security Scan](https://github.com/takayama-tigrit/kaiwa/actions/workflows/security.yml/badge.svg)](https://github.com/takayama-tigrit/kaiwa/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**対面会話をAIで自動文字起こし・話者分離・要約するOSSツール**
+**デスクで突発的に始まる会話、ちゃんと記録できてますか？**
 
-Macの録音 or iPhoneのボイスメモから、話者分離付き文字起こし＋AI要約をMarkdownで自動生成します。
+ZoomやTeamsにはtl;dvやOtter.aiがあります。でも、「ちょっといいですか？」でデスクで始まった会話には何もない——kaiwaは、その**「録れなかった会話」を録るため**に作ったOSSツールです！
+
+ホットキーを押すだけで、**録音 → 文字起こし → 話者分離 → AI要約** を全自動で行います。
+
+![kaiwa ワークフロー](docs/assets/images/workflow.png)
+
+---
+
+## 📄 こんなMarkdownが自動で出てきます！
+
+ホットキーで録音を停止すると、こんな感じの見やすいMarkdownファイルが自動で保存されます👇
+
+![kaiwa 出力プレビュー](docs/assets/images/output-preview.png)
+
+**要約・TODO・話者分離済み全文**が全部入ったMarkdownファイル。これがホットキー1つで手に入ります！
+
+macOSの通知で処理の進捗もリアルタイムにわかります👇
+
+![kaiwa 通知フロー](docs/assets/images/notification-flow.png)
 
 ---
 
@@ -75,6 +93,11 @@ kaiwa は、そんな Plaud Note Pro のような体験を**初期投資ゼロ�
 
 ## 📄 出力例
 
+> 出力イメージは[こちら（上部のプレビュー画像）](#-こんなmarkdownが自動で出てきます)をご覧ください！
+
+<details>
+<summary>テキスト版の出力例を見る</summary>
+
 ```markdown
 # 病院とネイルの日常会話
 
@@ -93,6 +116,8 @@ kaiwa は、そんな Plaud Note Pro のような体験を**初期投資ゼロ�
 [00:10 → 00:11] SPEAKER_00: キラキラしてるの
 ...
 ```
+
+</details>
 
 ## 🚀 クイックスタート
 
