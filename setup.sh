@@ -19,22 +19,26 @@ if ! command -v brew &>/dev/null; then
 fi
 echo "✅ Homebrew: $(brew --version | head -1)"
 
-# Python 3
-if ! command -v python3 &>/dev/null; then
-    echo "❌ Python 3 がインストールされていません"
+# Python 3.10+（Homebrew版を優先）
+PYTHON_CMD=""
+for candidate in python3.13 python3.12 python3.11 python3.10 python3; do
+    if command -v "$candidate" &>/dev/null; then
+        _minor=$("$candidate" -c "import sys; print(sys.version_info.minor)" 2>/dev/null || echo "0")
+        if [ "$_minor" -ge 10 ]; then
+            PYTHON_CMD="$candidate"
+            break
+        fi
+    fi
+done
+
+if [ -z "$PYTHON_CMD" ]; then
+    echo "❌ Python 3.10 以上が必要です"
     echo "   インストール: brew install python@3.13"
     exit 1
 fi
 
-PYTHON_VERSION=$(python3 --version 2>&1)
-echo "✅ Python: $PYTHON_VERSION"
-
-# Python バージョンチェック（3.10+）
-PYTHON_MINOR=$(python3 -c "import sys; print(sys.version_info.minor)")
-if [ "$PYTHON_MINOR" -lt 10 ]; then
-    echo "❌ Python 3.10 以上が必要です（現在: $PYTHON_VERSION）"
-    exit 1
-fi
+PYTHON_VERSION=$("$PYTHON_CMD" --version 2>&1)
+echo "✅ Python: $PYTHON_VERSION ($PYTHON_CMD)"
 
 # ── Homebrew パッケージ ──
 
@@ -76,7 +80,7 @@ if [ -d "$VENV_DIR" ]; then
     echo "✅ venv: 既に存在 ($VENV_DIR)"
 else
     echo "🐍 Python venv を作成中..."
-    python3 -m venv "$VENV_DIR"
+    "$PYTHON_CMD" -m venv "$VENV_DIR"
     echo "  ✅ venv 作成完了: $VENV_DIR"
 fi
 
